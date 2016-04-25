@@ -25,6 +25,29 @@
       {% endif %}
     </div>
   </div>
+  <div class="row">
+    <div class="text-center">
+      <h1>Dataset selection</h1>
+      <p>Welcome to Edinburgh CityScope! Would you like to use some datasets with Jupyter?</p
+    </div>
+    <div class="text-left">
+      <form id="repository-form">
+        <table id="github-repositories" class="table">
+          <thead>
+            <th>Repository name</th>
+            <th>Futher Details</th>
+            <th>Use data</th>
+          </thead>
+          <tbody></tbody>
+        </table>
+    </div>
+    <div class="text-center">
+      <button id="start-loopback-button" type="button" class="btn btn-lg btn-success">Start Loopback Server</button>
+      <button id="stop-loopback-button" type="button" class="btn btn-lg btn-danger">Stop Loopback Server</button>
+      <button id="setup-data-button" type="submit" class="btn btn-lg btn-warning">Setup Data</button>
+      </form>
+    </div>
+  </div>
 </div>
 
 {% endblock %}
@@ -32,5 +55,8 @@
 {% block script %}
 <script type="text/javascript">
 require(["home"]);
+</script>
+<script type="text/javascript">
+  require(["cityscope"]);
 </script>
 {% endblock %}
