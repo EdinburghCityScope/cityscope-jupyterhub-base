@@ -433,6 +433,20 @@ class JupyterHub(Application):
         """
     )
 
+    cleanup_data_api = Bool(True, config=True,
+        help="""Whether to shutdown the data api servers when the Hub shuts down.
+
+        Disable if you want to be able to teardown the Hub while leaving the proxy running.
+
+        Only valid if the data api was started by the Hub process.
+
+        If this, cleanup_proxy and cleanup_servers are False, sending SIGINT to the Hub will
+        only shutdown the Hub, leaving everything else running.
+
+        The Hub should be able to resume from database state.
+        """
+    )
+
     handlers = List()
 
     _log_formatter_cls = CoroutineLogFormatter
@@ -1030,6 +1044,15 @@ class JupyterHub(Application):
                 self.log.info("I didn't start the proxy, I can't clean it up")
         else:
             self.log.info("Leaving proxy running")
+
+        if self.cleanup_data_api:
+            self.log.info("Cleaning up data api servers...")
+            # request (async) process termination
+            for uid, user in self.users.items():
+                if user.data_api_spawner is not None:
+                    futures.append(user.data_api_spawner.stop())
+        else:
+            self.log.info("Leaving data api servers running")
 
 
         # wait for the requests to stop finish:
