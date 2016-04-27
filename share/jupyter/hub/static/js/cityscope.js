@@ -18,7 +18,17 @@ $(document).ready(function()
       console.error('Error occurred');
     });
 
-     console.info(user);
+    console.info(user);
+
+    $("#stop-loopback-button").hide();
+    
+    api.get_loopback_status(user,{
+      success: function() {
+        console.info('status is up');
+        $("#stop-loopback-button").show();
+        $("#start-loopback-button").hide();
+      }
+    });
 
 
     $('#repository-form').submit(function(event){

@@ -5,6 +5,7 @@ from tornado import gen, web
 from .. import orm
 from ..utils import admin_only
 from .base import APIHandler
+from subprocess import Popen
 
 class UserLoopbackAPIHandler(APIHandler):
 
@@ -27,22 +28,42 @@ class UserLoopbackAPIHandler(APIHandler):
     @admin_or_self
     def post(self, name):
         user = self.find_user(name)
+        print("Data API startup")
+        data_api_spawner = user.data_api_spawner
+        data_api_spawner.start()
         self.set_status(201)
 
     @gen.coroutine
     @admin_or_self
     def delete(self, name):
+        user = self.find_user(name)
+        print("Data API shutdown")
+        data_api_spawner = user.data_api_spawner
+        data_api_spawner.stop()
+        data_api_spawner.clear_state()
         self.set_status(201)
 
     @gen.coroutine
     @admin_or_self
     def put(self, name):
+        print("Data API add dataset")
         self.set_status(201)
 
     @gen.coroutine
     @admin_or_self
     def get(self,name):
-        self.set_status(201)
+        user = self.find_user(name)
+        print("Data API status")
+        data_api_spawner = user.data_api_spawner
+        status = data_api_spawner.get_state()
+        print(status)
+        if status is not None:
+            if "pid" not in status:
+                self.set_status(404)
+            else:
+                self.set_status(201)
+        else:
+            self.set_status(404)
 
 default_handlers = [
     (r"/api/users/([^/]+)/loopback", UserLoopbackAPIHandler)

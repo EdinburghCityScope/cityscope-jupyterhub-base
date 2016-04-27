@@ -14,6 +14,7 @@ from .utils import url_path_join
 from . import orm
 from traitlets import HasTraits, Any, Dict
 from .spawner import LocalProcessSpawner
+from .data_api_spawner import LocalLoopbackProcessSpawner
 
 
 class UserDict(dict):
@@ -95,6 +96,7 @@ class User(HasTraits):
     
     orm_user = None
     spawner = None
+    data_api_spawner = None
     spawn_pending = False
     stop_pending = False
     
@@ -105,6 +107,10 @@ class User(HasTraits):
     @property
     def spawner_class(self):
         return self.settings.get('spawner_class', LocalProcessSpawner)
+
+    @property
+    def data_api_spawner_class(self):
+        return self.settings.get('',LocalLoopbackProcessSpawner)
     
     def __init__(self, orm_user, settings, **kwargs):
         self.orm_user = orm_user
@@ -124,7 +130,15 @@ class User(HasTraits):
             authenticator=self.authenticator,
             config=self.settings.get('config'),
         )
-    
+        
+        self.data_api_spawner = self.data_api_spawner_class(
+            user=self,
+            db=self.db,
+            hub=hub,
+            authenticator=self.authenticator,
+            config=self.settings.get('config'),
+        )
+
     # pass get/setattr to ORM user
     
     def __getattr__(self, attr):
