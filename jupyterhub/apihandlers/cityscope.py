@@ -58,10 +58,12 @@ class UserLoopbackAPIHandler(APIHandler):
         status = data_api_spawner.get_state()
         print(status)
         if status is not None:
-            if "pid" not in status:
-                self.set_status(404)
-            else:
+            if "pid" in status:
                 self.set_status(201)
+            elif "container_id" in status:
+                self.set_status(201)
+            else:
+                self.set_status(404)
         else:
             self.set_status(404)
 

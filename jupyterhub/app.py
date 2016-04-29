@@ -57,7 +57,7 @@ from .utils import (
 # classes for config
 from .auth import Authenticator, PAMAuthenticator
 from .spawner import Spawner, LocalProcessSpawner
-from .data_api_spawner import DataApiSpawner,LocalLoopbackProcessSpawner
+from .data_api_spawner import DataApiSpawner,LocalLoopbackProcessSpawner,DockerProcessSpawner
 
 common_aliases = {
     'log-level': 'Application.log_level',
@@ -175,7 +175,8 @@ class JupyterHub(Application):
         Authenticator,
         PAMAuthenticator,
         DataApiSpawner,
-        LocalLoopbackProcessSpawner
+        LocalLoopbackProcessSpawner,
+        DockerProcessSpawner
     ])
 
     config_file = Unicode('jupyterhub_config.py', config=True,
@@ -957,6 +958,7 @@ class JupyterHub(Application):
             admin_access=self.admin_access,
             authenticator=self.authenticator,
             spawner_class=self.spawner_class,
+            data_api_spawner_class=self.data_api_spawner_class,
             base_url=self.base_url,
             cookie_secret=self.cookie_secret,
             cookie_max_age_days=self.cookie_max_age_days,

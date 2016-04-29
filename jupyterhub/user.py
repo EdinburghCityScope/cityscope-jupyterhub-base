@@ -14,28 +14,28 @@ from .utils import url_path_join
 from . import orm
 from traitlets import HasTraits, Any, Dict
 from .spawner import LocalProcessSpawner
-from .data_api_spawner import LocalLoopbackProcessSpawner
+from .data_api_spawner import LocalLoopbackProcessSpawner,DockerProcessSpawner
 
 
 class UserDict(dict):
     """Like defaultdict, but for users
-    
+
     Getting by a user id OR an orm.User instance returns a User wrapper around the orm user.
     """
     def __init__(self, db_factory, settings):
         self.db_factory = db_factory
         self.settings = settings
         super().__init__()
-    
+
     @property
     def db(self):
         return self.db_factory()
-    
+
     def __contains__(self, key):
         if isinstance(key, (User, orm.User)):
             key = key.id
         return dict.__contains__(self, key)
-    
+
     def __getitem__(self, key):
         if isinstance(key, User):
             key = key.id
@@ -64,7 +64,7 @@ class UserDict(dict):
             return dict.__getitem__(self, id)
         else:
             raise KeyError(repr(key))
-    
+
     def __delitem__(self, key):
         user = self[key]
         user_id = user.id
@@ -75,17 +75,17 @@ class UserDict(dict):
 
 
 class User(HasTraits):
-    
+
     def _log_default(self):
         return app_log
-    
+
     settings = Dict()
-    
+
     db = Any(allow_none=True)
     def _db_default(self):
         if self.orm_user:
             return inspect(self.orm_user).session
-    
+
     def _db_changed(self, name, old, new):
         """Changing db session reacquires ORM User object"""
         # db session changed, re-get orm User
@@ -93,36 +93,36 @@ class User(HasTraits):
             id = self.orm_user.id
             self.orm_user = new.query(orm.User).filter(orm.User.id==id).first()
         self.spawner.db = self.db
-    
+
     orm_user = None
     spawner = None
     data_api_spawner = None
     spawn_pending = False
     stop_pending = False
-    
+
     @property
     def authenticator(self):
         return self.settings.get('authenticator', None)
-    
+
     @property
     def spawner_class(self):
         return self.settings.get('spawner_class', LocalProcessSpawner)
 
     @property
     def data_api_spawner_class(self):
-        return self.settings.get('',LocalLoopbackProcessSpawner)
-    
+        return self.settings.get('data_api_spawner_class',LocalLoopbackProcessSpawner)
+
     def __init__(self, orm_user, settings, **kwargs):
         self.orm_user = orm_user
         self.settings = settings
         super().__init__(**kwargs)
-        
+
         hub = self.db.query(orm.Hub).first()
-        
+
         self.cookie_name = '%s-%s' % (hub.server.cookie_name, quote(self.name, safe=''))
         self.base_url = url_path_join(
             self.settings.get('base_url', '/'), 'user', self.escaped_name)
-        
+
         self.spawner = self.spawner_class(
             user=self,
             db=self.db,
@@ -130,7 +130,9 @@ class User(HasTraits):
             authenticator=self.authenticator,
             config=self.settings.get('config'),
         )
-        
+        print(self.spawner)
+
+        print(self.data_api_spawner_class)
         self.data_api_spawner = self.data_api_spawner_class(
             user=self,
             db=self.db,
@@ -138,24 +140,25 @@ class User(HasTraits):
             authenticator=self.authenticator,
             config=self.settings.get('config'),
         )
+        print(self.data_api_spawner)
 
     # pass get/setattr to ORM user
-    
+
     def __getattr__(self, attr):
         if hasattr(self.orm_user, attr):
             return getattr(self.orm_user, attr)
         else:
             raise AttributeError(attr)
-    
+
     def __setattr__(self, attr, value):
         if self.orm_user and hasattr(self.orm_user, attr):
             setattr(self.orm_user, attr, value)
         else:
             super().__setattr__(attr, value)
-    
+
     def __repr__(self):
         return repr(self.orm_user)
-    
+
     @property
     def running(self):
         """property for whether a user has a running server"""
@@ -164,25 +167,25 @@ class User(HasTraits):
         if self.server is None:
             return False
         return True
-    
+
     @property
     def escaped_name(self):
         """My name, escaped for use in URLs, cookies, etc."""
         return quote(self.name, safe='@')
-    
+
     @property
     def proxy_path(self):
         if self.settings.get('subdomain_host'):
             return url_path_join('/' + self.domain, self.server.base_url)
         else:
             return self.server.base_url
-    
+
     @property
     def domain(self):
         """Get the domain for my server."""
         # FIXME: escaped_name probably isn't escaped enough in general for a domain fragment
         return self.escaped_name + '.' + self.settings['domain']
-    
+
     @property
     def host(self):
         """Get the *host* for my server (domain[:port])"""
@@ -190,11 +193,11 @@ class User(HasTraits):
         parsed = urlparse(self.settings['subdomain_host'])
         h = '%s://%s.%s' % (parsed.scheme, self.escaped_name, parsed.netloc)
         return h
-    
+
     @property
     def url(self):
         """My URL
-        
+
         Full name.domain/path if using subdomains, otherwise just my /base/url
         """
         if self.settings.get('subdomain_host'):
@@ -204,22 +207,22 @@ class User(HasTraits):
             )
         else:
             return self.server.base_url
-    
+
     @gen.coroutine
     def spawn(self, options=None):
         """Start the user's spawner"""
         db = self.db
-        
+
         self.server = orm.Server(
             cookie_name=self.cookie_name,
             base_url=self.base_url,
         )
         db.add(self.server)
         db.commit()
-        
+
         api_token = self.new_api_token()
         db.commit()
-        
+
         spawner = self.spawner
         spawner.user_options = options or {}
         # we are starting a new server, make sure it doesn't restore state
@@ -295,7 +298,7 @@ class User(HasTraits):
     @gen.coroutine
     def stop(self):
         """Stop the user's spawner
-        
+
         and cleanup after it.
         """
         self.spawn_pending = False
@@ -319,4 +322,3 @@ class User(HasTraits):
                 yield gen.maybe_future(
                     auth.post_spawn_stop(self, spawner)
                 )
-
