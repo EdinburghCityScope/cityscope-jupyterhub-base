@@ -10,6 +10,7 @@ $(document).ready(function()
   $.get("https://api.github.com/search/repositories?q=user:EdinburghCityScope&order=desc")
     .done(function(data){
     $.each(data.items, function(index){
+      if ((data.items[index].name!='cityscope-loopback-docker')&&(data.items[index].name!='edinburghcityscope-utils'))
       $("#github-repositories tbody").append('<tr><td>'+data.items[index].description+'</td><td><a target="_blank" href="'+data.items[index].html_url+'">View repository details</a></td><td><input type="checkbox" name="'+data.items[index].name+'" value="'+data.items[index].clone_url+'"/></td></tr>');
     });
 
@@ -21,7 +22,7 @@ $(document).ready(function()
     console.info(user);
 
     $("#stop-loopback-button").hide();
-    
+
     api.get_loopback_status(user,{
       success: function() {
         console.info('status is up');
