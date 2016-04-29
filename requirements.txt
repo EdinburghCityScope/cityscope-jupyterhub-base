@@ -4,3 +4,5 @@ jinja2
 pamela
 sqlalchemy>=1.0
 requests
+escapism
+docker-py
