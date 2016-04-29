@@ -275,30 +275,6 @@ def _try_setcwd(path):
     td = mkdtemp()
     os.chdir(td)
 
-
-#def set_user_setuid(username):
-#    """return a preexec_fn for setting the user (via setuid) of a spawned process"""
-#    user = pwd.getpwnam(username)
-#    uid = user.pw_uid
-#    gid = user.pw_gid
-#    home = user.pw_dir
-#    gids = [ g.gr_gid for g in grp.getgrall() if username in g.gr_mem ]
-
-#    def preexec():
-        # set the user and group
-#        os.setgid(gid)
-#        try:
-#            os.setgroups(gids)
-#        except Exception as e:
-#            print('Failed to set groups %s' % e, file=sys.stderr)
-#        os.setuid(uid)
-
-        # start in the user's home dir
-#        _try_setcwd(home)
-
-#    return preexec
-
-
 class LocalLoopbackProcessSpawner(DataApiSpawner):
     """A Data API Spawner that just uses Popen to start local processes as users.
 
@@ -360,9 +336,7 @@ class LocalLoopbackProcessSpawner(DataApiSpawner):
     @gen.coroutine
     def start(self):
         """Start the process"""
-         #if self.ip:
-        #    self.user.server.ip = self.ip
-        #self.user.server.port = random_port()
+
         cmd = []
         env = self.get_env()
 
@@ -550,7 +524,7 @@ class DockerProcessSpawner(DataApiSpawner):
     )
 
     remove_containers = Bool(False, config=True, help="If True, delete containers after they are stopped.")
-    extra_create_kwargs = Dict(config=True, help="Additional args to pass for container create")
+    extra_create_kwargs = Dict(config=True, help="Additional args to pass for container create. {username} will be replaced with actual username")
     extra_start_kwargs = Dict(config=True, help="Additional args to pass for container start")
     extra_host_config = Dict(config=True, help="Additional args to create_host_config for container create")
 
@@ -693,9 +667,6 @@ class DockerProcessSpawner(DataApiSpawner):
         env = super(DockerProcessSpawner, self).get_env()
         env.update(dict(
             JPY_USER=self.user.name
-            #JPY_COOKIE_NAME=self.user.server.cookie_name,
-            #JPY_BASE_URL=self.user.server.base_url,
-            #JPY_HUB_PREFIX=self.hub.server.base_url
         ))
 
         if self.hub_ip_connect:
@@ -788,8 +759,16 @@ class DockerProcessSpawner(DataApiSpawner):
                 environment=self.get_env(),
                 volumes=self.volume_mount_points,
                 name=self.container_name)
+            self.extra_create_kwargs = {
+                key.format(username=self.user.name): value.format(username=self.user.name)
+                for key, value in self.extra_create_kwargs.items()
+            }
             create_kwargs.update(self.extra_create_kwargs)
             if extra_create_kwargs:
+                extra_create_kwargs = {
+                    key.format(username=self.user.name): value.format(username=self.user.name)
+                    for key, value in extra_create_kwargs.items()
+                }
                 create_kwargs.update(extra_create_kwargs)
 
             # build the dictionary of keyword arguments for host_config
