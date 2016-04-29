@@ -130,9 +130,7 @@ class User(HasTraits):
             authenticator=self.authenticator,
             config=self.settings.get('config'),
         )
-        print(self.spawner)
 
-        print(self.data_api_spawner_class)
         self.data_api_spawner = self.data_api_spawner_class(
             user=self,
             db=self.db,
@@ -140,8 +138,7 @@ class User(HasTraits):
             authenticator=self.authenticator,
             config=self.settings.get('config'),
         )
-        print(self.data_api_spawner)
-
+        
     # pass get/setattr to ORM user
 
     def __getattr__(self, attr):
