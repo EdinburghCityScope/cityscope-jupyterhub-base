@@ -30,6 +30,7 @@ from pprint import pformat
 
 from .traitlets import Command
 from .utils import random_port
+from .utils import recursive_format
 from pprint import pformat
 
 import docker
@@ -759,16 +760,20 @@ class DockerProcessSpawner(DataApiSpawner):
                 environment=self.get_env(),
                 volumes=self.volume_mount_points,
                 name=self.container_name)
-            self.extra_create_kwargs = {
-                key.format(username=self.user.name): value.format(username=self.user.name)
-                for key, value in self.extra_create_kwargs.items()
+            extra_create_params = {
+                'username': self.user.name
             }
+
+            self.extra_create_kwargs = recursive_format(
+                self.extra_create_kwargs,
+                **extra_create_params
+            )
             create_kwargs.update(self.extra_create_kwargs)
             if extra_create_kwargs:
-                extra_create_kwargs = {
-                    key.format(username=self.user.name): value.format(username=self.user.name)
-                    for key, value in extra_create_kwargs.items()
-                }
+                extra_create_kwargs = recursive_format(
+                    extra_create_kwargs,
+                    **extra_create_params
+                )
                 create_kwargs.update(extra_create_kwargs)
 
             # build the dictionary of keyword arguments for host_config
