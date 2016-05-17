@@ -205,3 +205,17 @@ def url_path_join(*pieces):
 
     return result
 
+def recursive_format(element, **kargs):
+    """ Apply string format recursively to lists, dicts and strings
+    """
+    if type(element) is str:
+        return element.format(**kargs)
+    elif type(element) is list:
+        return list(map(lambda x: recursive_format(x, **kargs), element))
+    elif type(element) is dict:
+        return {
+            recursive_format(k, **kargs): recursive_format(v, **kargs)
+            for k, v in element.items()
+        }
+    else:
+        return element
