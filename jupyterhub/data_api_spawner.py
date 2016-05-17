@@ -97,7 +97,7 @@ class DataApiSpawner(LoggingConfigurable):
                  )
 
     notebook_base_dir=Unicode('/Users/%U/cityscope/', config=True,
-                 help="The token for accessing the github API"
+                 help="The base directory for jupyterhub notebooks"
                  )
 
     def _env_default(self):
