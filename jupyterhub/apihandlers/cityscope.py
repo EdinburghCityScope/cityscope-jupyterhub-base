@@ -46,7 +46,11 @@ class UserLoopbackAPIHandler(APIHandler):
     @gen.coroutine
     @admin_or_self
     def put(self, name):
+        user = self.find_user(name)
         print("Data API add dataset")
+        data = json.loads(self.request.body.decode('utf-8'))
+        data_api_spawner = user.data_api_spawner
+        data_api_spawner.setup_data(data)
         self.set_status(201)
 
     @gen.coroutine

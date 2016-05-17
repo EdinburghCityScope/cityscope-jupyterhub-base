@@ -12,6 +12,7 @@ import signal
 import string
 import sys
 import grp
+import tarfile
 from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
 
@@ -35,6 +36,8 @@ from pprint import pformat
 import docker
 from docker.errors import APIError
 from docker.utils import kwargs_from_env
+
+from github import Github
 
 from escapism import escape
 
@@ -88,6 +91,14 @@ class DataApiSpawner(LoggingConfigurable):
     )
     env = Dict()
 
+    github_api_token=Unicode('', config=True,
+                 help="The token for accessing the github API"
+                 )
+
+    notebook_base_dir=Unicode('/Users/%U/cityscope/', config=True,
+                 help="The token for accessing the github API"
+                 )
+
     def _env_default(self):
         env = {}
         for key in self.env_keep:
@@ -113,6 +124,10 @@ class DataApiSpawner(LoggingConfigurable):
             `%U` will be expanded to the user's username
             """
                           )
+
+    data_setup_args = List(['../cityscope-loopback-docker/cityscope-data-starter.js'], config=True,
+                help="""Extra arguments to be passed for data setup"""
+                )
 
     def __init__(self, **kwargs):
         super(DataApiSpawner, self).__init__(**kwargs)
@@ -175,6 +190,18 @@ class DataApiSpawner(LoggingConfigurable):
             args.append('--debug')
         return args
 
+    def get_data_setup_args(self):
+        """Return the arguments to be passed after self.cmd"""
+        args=self.data_setup_args
+        if self.debug:
+            args.append('--debug')
+        return args
+
+    @gen.coroutine
+    def github_file_copies(self,repository):
+        """Do notebook and CSV data copies from a repository"""
+        raise NotImplementedError("Override in subclass. Must be a Tornado gen.coroutine.")
+
     @gen.coroutine
     def start(self):
         """Start the single-user process"""
@@ -184,6 +211,11 @@ class DataApiSpawner(LoggingConfigurable):
     def stop(self, now=False):
         """Stop the single-user process"""
         raise NotImplementedError("Override in subclass. Must be a Tornado gen.coroutine.")
+
+    @gen.coroutine
+    def setup_data(self,data,now=False):
+        """Setup data in the API"""
+        raise NotImplementedError("Override in subclass. Must be a Tornado gen.coroutine")
 
     @gen.coroutine
     def poll(self):
@@ -332,6 +364,46 @@ class LocalLoopbackProcessSpawner(DataApiSpawner):
         env = super().get_env()
         env = self.user_env(env)
         return env
+
+    @gen.coroutine
+    def github_file_copies(self,repository):
+        """Do notebook and CSV data copies from a repository"""
+        print("Getting info from:",repository)
+        github = Github(login_or_token=self.github_api_token);
+        repo = github.get_repo(repository)
+        print("Getting notebooks")
+        for contentFile in repo.get_dir_contents("notebooks"):
+            print(contentFile.name)
+            filename = self.notebook_base_dir.replace("%U",self.user.name)+repo.name+"/notebooks/"+contentFile.name
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "wb") as f:
+                print("Writing :",filename)
+                f.write(contentFile.decoded_content)
+            f.closed
+        print("Getting data")
+        for contentFile in repo.get_dir_contents("data"):
+            filename = self.notebook_base_dir.replace("%U",self.user.name)+repo.name+"/data/"+contentFile.name
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "wb") as f:
+                print("Writing :",filename)
+                f.write(contentFile.decoded_content)
+            f.closed
+
+    @gen.coroutine
+    def setup_data(self,data):
+        """Import data into loopback"""
+
+        for repository in data:
+            print("repository",repository)
+            cmd=[]
+            env=self.get_env()
+            cmd.extend(self.cmd)
+            cmd.extend(self.get_data_setup_args())
+            self.log.info("Setting up %s", ' '.join(pipes.quote(s) for s in cmd))
+            self.proc = Popen(cmd, env=env,
+                start_new_session=True, # don't forward signals
+                )
+            self.github_file_copies(repository)
 
     @gen.coroutine
     def start(self):
@@ -736,6 +808,51 @@ class DockerProcessSpawner(DataApiSpawner):
             else:
                 raise
         return container
+
+    @gen.coroutine
+    def github_file_copies(self,repository):
+        """Do notebook and CSV data copies from a repository"""
+        print("Getting info from:",repository)
+        github = Github(login_or_token=self.github_api_token);
+        repo = github.get_repo(repository)
+        print("Getting notebooks")
+        for contentFile in repo.get_dir_contents("notebooks"):
+            print(contentFile.name)
+            filename = "/tmp/"+self.user.name+"/"+repo.name+"/notebooks/"+contentFile.name
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "wb") as f:
+                print("Writing :",filename)
+                f.write(contentFile.decoded_content)
+            f.closed
+        print("Getting data")
+        for contentFile in repo.get_dir_contents("data"):
+            filename = "/tmp/"+self.user.name+"/"+repo.name+"/data/"+contentFile.name
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "wb") as f:
+                print("Writing :",filename)
+                f.write(contentFile.decoded_content)
+            f.closed
+        print("Creating tar file")
+        tar = tarfile.open("/tmp/"+self.user.name+".tar","w")
+        tar.add("/tmp/"+self.user.name)
+        tar.close()
+        print("Sending tar to container")
+        self.docker("put_archive",self.container_id,path=self.notebook_base_dir.replace("%U",self.user.name),data=tar)
+
+    @gen.coroutine
+    def setup_data(self,data):
+        """Import data into loopback"""
+        for repository in data:
+            print("repository",repository)
+            #cmd=[]
+            #env=self.get_env()
+            #cmd.extend(self.cmd)
+            #cmd.extend(self.get_data_setup_args())
+            #self.log.info("Setting up %s", ' '.join(pipes.quote(s) for s in cmd))
+            #self.proc = Popen(cmd, env=env,
+        #        start_new_session=True, # don't forward signals
+        #        )
+            self.github_file_copies(repository)
 
     @gen.coroutine
     def start(self, image=None, extra_create_kwargs=None,

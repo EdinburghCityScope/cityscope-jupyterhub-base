@@ -147,9 +147,10 @@ define(['jquery', 'utils'], function ($, utils) {
         );
     };
 
-    JHAPI.prototype.setup_loopback = function (user, options) {
+    JHAPI.prototype.setup_loopback = function (user,apiInfo,options) {
         options = options || {};
-        options = update(options, {type: 'PUT', dataType: null});
+        options = update(options, {type: 'PUT', dataType: null, data: apiInfo});
+        console.log('options:'+JSON.stringify(options));
         this.api_request(
             utils.url_path_join('users', user, 'loopback'),
             options

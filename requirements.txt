@@ -6,3 +6,4 @@ sqlalchemy>=1.0
 requests
 escapism
 docker-py
+PyGithub

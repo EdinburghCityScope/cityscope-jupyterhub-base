@@ -7,11 +7,12 @@ require(["jquery","jhapi"], function ($,JHAPI) {
 
 $(document).ready(function()
 {
+  //TODO Add refined query which only returns repositories which contain a data.json in the repo
   $.get("https://api.github.com/search/repositories?q=user:EdinburghCityScope&order=desc")
     .done(function(data){
     $.each(data.items, function(index){
       if ((data.items[index].name!='cityscope-loopback-docker')&&(data.items[index].name!='edinburghcityscope-utils'))
-      $("#github-repositories tbody").append('<tr><td>'+data.items[index].description+'</td><td><a target="_blank" href="'+data.items[index].html_url+'">View repository details</a></td><td><input type="checkbox" name="'+data.items[index].name+'" value="'+data.items[index].clone_url+'"/></td></tr>');
+      $("#github-repositories tbody").append('<tr><td>'+data.items[index].description+'</td><td><a target="_blank" href="'+data.items[index].html_url+'">View repository details</a></td><td><input type="checkbox" name="'+data.items[index].full_name+'" value="'+data.items[index].clone_url+'"/></td></tr>');
     });
 
     })
@@ -34,6 +35,7 @@ $(document).ready(function()
 
     $('#repository-form').submit(function(event){
       var values={};
+      var i=1;
       $('form#repository-form :checkbox').each(function(){
         if ($(this).is(':checked'))
         {
@@ -43,7 +45,7 @@ $(document).ready(function()
       });
       console.info(values);
 
-      api.setup_loopback(user, {
+      api.setup_loopback(user,JSON.stringify(values), {
             success: function () {
                 console.info('succesfully updated loopback');
             }
