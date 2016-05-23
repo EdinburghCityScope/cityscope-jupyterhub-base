@@ -127,7 +127,7 @@ class DataApiSpawner(LoggingConfigurable):
                           )
 
     data_setup_args = List(['../cityscope-loopback-docker/cityscope-data-starter.js'], config=True,
-                help="""Extra arguments to be passed for data setup"""
+                help="""Extra arguments to be passed for data setup. Value of %U will be expanded to the user's username"""
                 )
 
     def __init__(self, **kwargs):
@@ -193,10 +193,14 @@ class DataApiSpawner(LoggingConfigurable):
 
     def get_data_setup_args(self):
         """Return the arguments to be passed after self.cmd"""
-        args=self.data_setup_args
+        replaced_args = []
+        for arg in self.data_setup_args:
+            arg = arg.replace("%U",self.user.name)
+            print(arg)
+            replaced_args.append(arg)
         if self.debug:
-            args.append('--debug')
-        return args
+            replaced_args.append('--debug')
+        return replaced_args
 
     @gen.coroutine
     def github_file_copies(self,repository):
@@ -818,7 +822,6 @@ class DockerProcessSpawner(DataApiSpawner):
         repo = github.get_repo(repository)
         print("Getting notebooks")
         for contentFile in repo.get_dir_contents("notebooks"):
-            print(contentFile.name)
             filename = "/tmp/"+self.user.name+"/"+repo.name+"/notebooks/"+contentFile.name
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, "wb") as f:
@@ -835,24 +838,29 @@ class DockerProcessSpawner(DataApiSpawner):
             f.closed
         print("Creating tar file")
         tar = tarfile.open("/tmp/"+self.user.name+".tar","w")
-        tar.add("/tmp/"+self.user.name)
+        tar.add(arcname=os.path.basename(""), name="/tmp/"+self.user.name)
         tar.close()
-        print("Sending tar to container")
-        self.docker("put_archive",self.container_id,path=self.notebook_base_dir.replace("%U",self.user.name),data=tar)
+        f = open("/tmp/"+self.user.name+".tar", 'rb')
+        filedata = f.read()
+        print("Sending tar to container:"+self.notebook_base_dir.replace("%U",self.user.name))
+        self.docker("put_archive",container=self.container_name,path=self.notebook_base_dir.replace("%U",self.user.name),data=filedata)
 
     @gen.coroutine
     def setup_data(self,data):
         """Import data into loopback"""
         for repository in data:
-            print("repository",repository)
-            #cmd=[]
-            #env=self.get_env()
-            #cmd.extend(self.cmd)
-            #cmd.extend(self.get_data_setup_args())
-            #self.log.info("Setting up %s", ' '.join(pipes.quote(s) for s in cmd))
-            #self.proc = Popen(cmd, env=env,
-        #        start_new_session=True, # don't forward signals
-        #        )
+
+            dataUrl = "https://raw.githubusercontent.com/"+repository+"/master/data.json"
+            print("Sending dataUrl to loopback container:"+dataUrl)
+            cmd=""
+            for commands in self.cmd:
+                cmd=cmd+" "+commands
+            for commands in self.get_data_setup_args():
+                cmd = cmd + " " + commands
+            cmd = cmd+" dcat-data-url="+dataUrl
+            print("executing: "+cmd)
+            yield self.docker("exec_create",container=self.container_name,cmd=cmd)
+
             self.github_file_copies(repository)
 
     @gen.coroutine
