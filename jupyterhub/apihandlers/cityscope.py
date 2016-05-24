@@ -30,7 +30,7 @@ class UserLoopbackAPIHandler(APIHandler):
         user = self.find_user(name)
         print("Data API startup")
         data_api_spawner = user.data_api_spawner
-        data_api_spawner.start()
+        yield data_api_spawner.start()
         self.set_status(201)
 
     @gen.coroutine
@@ -39,7 +39,7 @@ class UserLoopbackAPIHandler(APIHandler):
         user = self.find_user(name)
         print("Data API shutdown")
         data_api_spawner = user.data_api_spawner
-        data_api_spawner.stop()
+        yield data_api_spawner.stop()
         data_api_spawner.clear_state()
         self.set_status(201)
 
@@ -50,7 +50,9 @@ class UserLoopbackAPIHandler(APIHandler):
         print("Data API add dataset")
         data = json.loads(self.request.body.decode('utf-8'))
         data_api_spawner = user.data_api_spawner
-        data_api_spawner.setup_data(data)
+        yield data_api_spawner.setup_data(data)
+        response = { 'message' : 'Data setup complete'}
+        self.write(response)
         self.set_status(201)
 
     @gen.coroutine

@@ -1,4 +1,4 @@
-require(["jquery","jhapi"], function ($,JHAPI) {
+require(["jquery","jhapi","bootstrap"], function ($,JHAPI) {
     "use strict";
 
     var base_url = window.jhdata.base_url;
@@ -18,6 +18,9 @@ $(document).ready(function()
     })
     .error(function(){
       console.error('Error occurred');
+      $("#errorMessage").text("An error occurred retrieving dataset information.")
+      $("#errorRow").removeClass("hidden");
+
     });
 
     console.info(user);
@@ -34,6 +37,10 @@ $(document).ready(function()
 
 
     $('#repository-form').submit(function(event){
+
+      $("#warningMessage").text("Data setup in progress, please wait...");
+      $("#warningRow").removeClass("hidden");
+
       var values={};
       var i=1;
       $('form#repository-form :checkbox').each(function(){
@@ -46,17 +53,31 @@ $(document).ready(function()
       console.info(values);
 
       api.setup_loopback(user,JSON.stringify(values), {
-            success: function () {
-                console.info('succesfully updated loopback');
+            success: function (data) {
+                console.info('succesfully updated loopback'+JSON.stringify(data));
+                $("#warningRow").addClass("hidden");
+                $("#successMessage").text(data.message);
+                $("#successRow").removeClass("hidden");
+            },
+            error: function(error) {
+              console.info("error encountered"+error);
+              $("#warningRow").addClass("hidden");
+              $("#errorMessage").text("Error encountered setting up data");
+              $("#errorRow").removeClass("hidden");
             }
         });
       event.preventDefault();
     });
 
      $("#start-loopback-button").click(function () {
+       $("#warningRow").removeClass("hidden");
+       $("#warningMessage").text("Starting loopback, please wait...");
         api.start_loopback(user, {
           success: function () {
               console.info('succesfully started loopback');
+              $("#warningRow").addClass("hidden");
+              $("#successRow").removeClass("hidden");
+              $("#successMessage").text("Loopback started");
               $("#stop-loopback-button").show();
               $("#start-loopback-button").hide();
           }
@@ -64,9 +85,14 @@ $(document).ready(function()
     });
 
      $("#stop-loopback-button").click(function () {
+               $("#warningRow").removeClass("hidden");
+               $("#warningMessage").text("Stopping loopback, please wait...");
         api.stop_loopback(user, {
             success: function () {
                 console.info('succesfully stopped loopback');
+                $("#warningRow").addClass("hidden");
+                $("#successRow").removeClass("hidden");
+                $("#successMessage").text("Loopback stopped.");
                 $("#stop-loopback-button").hide();
                 $("#start-loopback-button").show();
             }

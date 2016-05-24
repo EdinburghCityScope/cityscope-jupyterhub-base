@@ -3,6 +3,37 @@
 {% block main %}
 
 <div class="container">
+
+<div>
+    <div id="successRow" class="row hidden">
+        <div class="col-md-12">
+            <div id="successMessage" class="alert alert-success" role="alert">
+              
+            </div>
+        </div>
+    </div>
+</div>
+
+<div>
+    <div id="warningRow" class="row hidden">
+        <div class="col-md-12">
+            <div id="warningMessage" class="alert alert-warning">
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div>
+    <div id="errorRow" class="row hidden">
+        <div class="col-md-12">
+            <div id="errorMessage" class="alert alert-danger">
+
+            </div>
+        </div>
+    </div>
+</div>
+
   <div class="row">
     <div class="text-center">
       {% if user.running %}
