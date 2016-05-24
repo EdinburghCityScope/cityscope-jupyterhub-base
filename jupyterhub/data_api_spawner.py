@@ -831,32 +831,32 @@ class DockerProcessSpawner(DataApiSpawner):
     @gen.coroutine
     def github_file_copies(self,repository):
         """Do notebook and CSV data copies from a repository"""
-        print("Getting info from:",repository)
+        self.log.info("Getting info from:",repository)
         github = Github(login_or_token=self.github_api_token);
         repo = github.get_repo(repository)
-        print("Getting notebooks")
+        self.log.info("Getting notebooks")
         for contentFile in repo.get_dir_contents("notebooks"):
             filename = "/tmp/"+self.user.name+"/"+repo.name+"/notebooks/"+contentFile.name
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, "wb") as f:
-                print("Writing :",filename)
+                self.log.debug("Writing :",filename)
                 f.write(contentFile.decoded_content)
             f.closed
-        print("Getting data")
+        self.log.info("Getting data")
         for contentFile in repo.get_dir_contents("data"):
             filename = "/tmp/"+self.user.name+"/"+repo.name+"/data/"+contentFile.name
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, "wb") as f:
-                print("Writing :",filename)
+                self.log.debug("Writing :",filename)
                 f.write(contentFile.decoded_content)
             f.closed
-        print("Creating tar file")
+        self.log.info("Creating tar file")
         tar = tarfile.open("/tmp/"+self.user.name+".tar","w")
         tar.add(arcname=os.path.basename(""), name="/tmp/"+self.user.name)
         tar.close()
         f = open("/tmp/"+self.user.name+".tar", 'rb')
         filedata = f.read()
-        print("Sending tar to container:"+self.notebook_base_dir.replace("%U",self.user.name))
+        self.log.info("Sending tar to container:"+self.notebook_base_dir.replace("%U",self.user.name))
         self.docker("put_archive",container=self.notebook_container_name,path=self.notebook_base_dir.replace("%U",self.user.name),data=filedata)
 
     @gen.coroutine
@@ -865,15 +865,20 @@ class DockerProcessSpawner(DataApiSpawner):
         for repository in data:
 
             dataUrl = "https://raw.githubusercontent.com/"+repository+"/master/data.json"
-            print("Sending dataUrl to loopback container:"+dataUrl)
+            self.log.info("Sending dataUrl to "+self.container_name+" container:"+dataUrl)
             cmd=""
             for commands in self.cmd:
-                cmd=cmd+" "+commands
+                if not cmd:
+                    cmd=cmd+commands
+                else:
+                    cmd=cmd+" "+commands
             for commands in self.get_data_setup_args():
                 cmd = cmd + " " + commands
             cmd = cmd+" dcat-data-url="+dataUrl
-            print("executing: "+cmd)
-            yield self.docker("exec_create",container=self.container_name,cmd=cmd)
+            self.log.info("executing: "+cmd)
+            response = yield self.docker("exec_create",container=self.container_name,cmd=cmd)
+            response = yield self.docker("exec_start",response["Id"]);
+            self.log.info(response)
 
             self.github_file_copies(repository)
 
@@ -951,11 +956,11 @@ class DockerProcessSpawner(DataApiSpawner):
         # build the dictionary of keyword arguments for start
         start_kwargs = {}
         start_kwargs.update(self.extra_start_kwargs)
-        print(start_kwargs)
+        self.log.debug(start_kwargs)
         if extra_start_kwargs:
             start_kwargs.update(extra_start_kwargs)
 
-        print(start_kwargs)
+        self.log.debug(start_kwargs)
         # start the container
         yield self.docker('start', self.container_id, **start_kwargs)
 
