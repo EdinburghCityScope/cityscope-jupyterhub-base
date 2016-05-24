@@ -554,6 +554,16 @@ class DockerProcessSpawner(DataApiSpawner):
     container_id = Unicode()
     container_ip = Unicode('127.0.0.1', config=True)
     container_image = Unicode("romandgood/cityscope-loopback", config=True)
+    notebook_container_prefix = Unicode(
+        "jupyter",
+        config=True,
+        help=dedent(
+            """
+            Prefix for notebook container names. The full notebook container name for a particular
+            user will be <prefix>-<username>.
+            """
+        )
+    )
     container_prefix = Unicode(
         "loopback",
         config=True,
@@ -714,6 +724,10 @@ class DockerProcessSpawner(DataApiSpawner):
         return self._escaped_name
 
     @property
+    def notebook_container_name(self):
+        return "{}-{}".format(self.notebook_container_prefix,self.escaped_name)
+
+    @property
     def container_name(self):
         return "{}-{}".format(self.container_prefix, self.escaped_name)
 
@@ -843,7 +857,7 @@ class DockerProcessSpawner(DataApiSpawner):
         f = open("/tmp/"+self.user.name+".tar", 'rb')
         filedata = f.read()
         print("Sending tar to container:"+self.notebook_base_dir.replace("%U",self.user.name))
-        self.docker("put_archive",container=self.container_name,path=self.notebook_base_dir.replace("%U",self.user.name),data=filedata)
+        self.docker("put_archive",container=self.notebook_container_name,path=self.notebook_base_dir.replace("%U",self.user.name),data=filedata)
 
     @gen.coroutine
     def setup_data(self,data):
