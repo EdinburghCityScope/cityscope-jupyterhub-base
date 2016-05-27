@@ -1,4 +1,6 @@
 import json
+import random
+import string
 
 from tornado import gen, web
 
@@ -6,6 +8,8 @@ from .. import orm
 from ..utils import admin_only
 from .base import APIHandler
 from subprocess import Popen
+from os import urandom
+
 
 class UserLoopbackAPIHandler(APIHandler):
 
@@ -29,8 +33,20 @@ class UserLoopbackAPIHandler(APIHandler):
     def post(self, name):
         user = self.find_user(name)
         print("Data API startup")
+
+        length = 13
+        chars = string.ascii_letters + string.digits + "!$"
+        random.seed = (urandom(1024))
+        new_credential = "".join(chars[ord(urandom(1)) % len(chars)] for i in range(length))
         data_api_spawner = user.data_api_spawner
-        yield data_api_spawner.start()
+        new = yield data_api_spawner.start(credential=new_credential)
+        if new:
+            message = "Loopback startup complete, initial password is set to "+new_credential+" please make a safe note of this!"
+        else:
+            message = "Loopback startup complete"
+
+        response = { 'message' : message}
+        self.write(response)
         self.set_status(201)
 
     @gen.coroutine
@@ -39,7 +55,10 @@ class UserLoopbackAPIHandler(APIHandler):
         user = self.find_user(name)
         print("Data API shutdown")
         data_api_spawner = user.data_api_spawner
+        #try:
         yield data_api_spawner.stop()
+        #except errors.NotFound:
+        #    print("container not found")
         data_api_spawner.clear_state()
         self.set_status(201)
 
@@ -65,13 +84,13 @@ class UserLoopbackAPIHandler(APIHandler):
         print(status)
         if status is not None:
             if "pid" in status:
-                self.set_status(201)
+                self.set_status(200)
             elif "container_id" in status:
-                self.set_status(201)
+                self.set_status(200)
             else:
-                self.set_status(404)
+                self.set_status(204)
         else:
-            self.set_status(404)
+            self.set_status(204)
 
 default_handlers = [
     (r"/api/users/([^/]+)/loopback", UserLoopbackAPIHandler)

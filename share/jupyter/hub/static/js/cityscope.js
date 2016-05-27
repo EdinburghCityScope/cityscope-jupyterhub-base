@@ -26,12 +26,21 @@ $(document).ready(function()
     console.info(user);
 
     $("#stop-loopback-button").hide();
+    $("#setup-data-button").hide();
 
     api.get_loopback_status(user,{
-      success: function() {
-        console.info('status is up');
-        $("#stop-loopback-button").show();
-        $("#start-loopback-button").hide();
+      success: function(xhr) {
+      
+      },
+      complete: function(xhr){
+
+        if (xhr.status=="200")
+        {
+          console.info('status is up');
+          $("#stop-loopback-button").show();
+          $("#start-loopback-button").hide();
+          $("#setup-data-button").show();
+        }
       }
     });
 
@@ -73,13 +82,14 @@ $(document).ready(function()
        $("#warningRow").removeClass("hidden");
        $("#warningMessage").text("Starting loopback, please wait...");
         api.start_loopback(user, {
-          success: function () {
+          success: function (data) {
               console.info('succesfully started loopback');
               $("#warningRow").addClass("hidden");
               $("#successRow").removeClass("hidden");
-              $("#successMessage").text("Loopback started");
+              $("#successMessage").text(data.message);
               $("#stop-loopback-button").show();
               $("#start-loopback-button").hide();
+              $("#setup-data-button").show();
           }
       });
     });
@@ -95,6 +105,7 @@ $(document).ready(function()
                 $("#successMessage").text("Loopback stopped.");
                 $("#stop-loopback-button").hide();
                 $("#start-loopback-button").show();
+                $("#setup-data-button").hide();
             }
         });
     });

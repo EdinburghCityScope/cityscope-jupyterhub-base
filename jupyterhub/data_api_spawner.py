@@ -132,26 +132,9 @@ class DataApiSpawner(LoggingConfigurable):
 
     def __init__(self, **kwargs):
         super(DataApiSpawner, self).__init__(**kwargs)
-        if self.user.state:
-            self.load_state(self.user.state)
-
-    def load_state(self, state):
-        """load state from the database
-
-        This is the extensible part of state
-
-        Override in a subclass if there is state to load.
-        Should call `super`.
-
-        See Also
-        --------
-
-        get_state, clear_state
-        """
-    pass
 
     def get_state(self):
-        """store the state necessary for load_state
+        """store the state
 
         A black box of extra state for custom spawners.
         Subclasses should call `super`.
@@ -330,15 +313,6 @@ class LocalLoopbackProcessSpawner(DataApiSpawner):
 
     proc = Instance(Popen, allow_none=True)
     pid = Integer(0)
-
-    #def make_preexec_fn(self, name):
-    #    return set_user_setuid(name)
-
-    def load_state(self, state):
-        """load pid from state"""
-        super(LocalLoopbackProcessSpawner, self).load_state(state)
-        if 'pid' in state:
-            self.pid = state['pid']
 
     def get_state(self):
         """add pid to state"""
@@ -731,10 +705,6 @@ class DockerProcessSpawner(DataApiSpawner):
     def container_name(self):
         return "{}-{}".format(self.container_prefix, self.escaped_name)
 
-    def load_state(self, state):
-        super(DockerProcessSpawner, self).load_state(state)
-        self.container_id = state.get('container_id', '')
-
     def get_state(self):
         state = super(DockerProcessSpawner, self).get_state()
         if self.container_id:
@@ -883,7 +853,7 @@ class DockerProcessSpawner(DataApiSpawner):
             self.github_file_copies(repository)
 
     @gen.coroutine
-    def start(self, image=None, extra_create_kwargs=None,
+    def start(self,credential, image=None, extra_create_kwargs=None,
         extra_start_kwargs=None, extra_host_config=None):
         """Start the single-user server in a docker container. You can override
         the default parameters passed to `create_container` through the
@@ -894,9 +864,12 @@ class DockerProcessSpawner(DataApiSpawner):
         Per-instance `extra_create_kwargs`, `extra_start_kwargs`, and
         `extra_host_config` take precedence over their global counterparts.
         """
+        new = False
         container = yield self.get_container()
         if container is None:
+            new = True
             image = image or self.container_image
+
 
             # build the dictionary of keyword arguments for create_container
             create_kwargs = dict(
@@ -905,9 +878,11 @@ class DockerProcessSpawner(DataApiSpawner):
                 volumes=self.volume_mount_points,
                 name=self.container_name)
             extra_create_params = {
-                'username': self.user.name
+                'username': self.user.name,
+                'credential': credential
             }
 
+            print(credential)
             self.extra_create_kwargs = recursive_format(
                 self.extra_create_kwargs,
                 **extra_create_params
@@ -936,6 +911,7 @@ class DockerProcessSpawner(DataApiSpawner):
             host_config = self.client.create_host_config(**host_config)
             create_kwargs.setdefault('host_config', {}).update(host_config)
 
+
             # create the container
             resp = yield self.docker('create_container', **create_kwargs)
             self.container_id = resp['Id']
@@ -963,6 +939,7 @@ class DockerProcessSpawner(DataApiSpawner):
         self.log.debug(start_kwargs)
         # start the container
         yield self.docker('start', self.container_id, **start_kwargs)
+        return new
 
     @gen.coroutine
     def stop(self, now=False):
@@ -982,3 +959,8 @@ class DockerProcessSpawner(DataApiSpawner):
             yield self.docker('remove_container', self.container_id, v=True)
 
         self.clear_state()
+
+    def clear_state(self):
+        """clear pid state"""
+        super(DockerProcessSpawner, self).clear_state()
+        self.container_id = ''
