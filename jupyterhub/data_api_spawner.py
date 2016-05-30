@@ -801,7 +801,7 @@ class DockerProcessSpawner(DataApiSpawner):
     @gen.coroutine
     def github_file_copies(self,repository):
         """Do notebook and CSV data copies from a repository"""
-        self.log.info("Getting info from:",repository)
+        self.log.info("Getting info from: {0}".format(repository))
         github = Github(login_or_token=self.github_api_token);
         repo = github.get_repo(repository)
         self.log.info("Getting notebooks")
