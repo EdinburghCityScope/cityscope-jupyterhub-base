@@ -824,10 +824,29 @@ class DockerProcessSpawner(DataApiSpawner):
         tar = tarfile.open("/tmp/"+self.user.name+".tar","w")
         tar.add(arcname=os.path.basename(""), name="/tmp/"+self.user.name)
         tar.close()
-        f = open("/tmp/"+self.user.name+".tar", 'rb')
-        filedata = f.read()
-        self.log.info("Sending tar to container:"+self.notebook_base_dir.replace("%U",self.user.name))
-        self.docker("put_archive",container=self.notebook_container_name,path=self.notebook_base_dir.replace("%U",self.user.name),data=filedata)
+
+        with open('/tmp/{user}.tar'.format(user = self.user.name), 'rb') as f:
+            self.log.info("Sending tar to container: {container_name}".format(
+                container_name = self.notebook_container_name)
+            )
+            yield self.docker('put_archive',
+                container = self.notebook_container_name,
+                path = '/tmp',
+                data = f
+            )
+
+        self.log.info("Copying the repository to a temp directory")
+        response = yield self.docker("exec_create",
+            container = self.notebook_container_name,
+            cmd = 'cp -r "/tmp/{repository}" "{notebook_dir}"'.format(
+                repository = repo.name,
+                notebook_dir = self.notebook_base_dir.replace("%U", self.user.name)
+            )
+            user = '1000'
+        )
+
+        self.log.info("Moving the repository to the notebooks directory")
+        yield self.docker('exec_start', response['Id'])
 
     @gen.coroutine
     def setup_data(self,data):
