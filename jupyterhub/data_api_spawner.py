@@ -841,7 +841,7 @@ class DockerProcessSpawner(DataApiSpawner):
             cmd = 'cp -r "/tmp/{repository}" "{notebook_dir}"'.format(
                 repository = repo.name,
                 notebook_dir = self.notebook_base_dir.replace("%U", self.user.name)
-            )
+            ),
             user = '1000'
         )
 
