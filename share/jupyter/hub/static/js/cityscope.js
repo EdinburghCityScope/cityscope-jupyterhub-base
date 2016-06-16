@@ -27,6 +27,8 @@ $(document).ready(function()
 
     $("#stop-loopback-button").hide();
     $("#setup-data-button").hide();
+    $("#start-mysql-button").show();
+
 
     api.get_loopback_status(user,{
       success: function(xhr) {
@@ -93,6 +95,22 @@ $(document).ready(function()
           }
       });
     });
+
+    $("#start-mysql-button").click(function () {
+      $("#warningRow").removeClass("hidden");
+      $("#warningMessage").text("Starting mysql, please wait...");
+       api.start_mysql(user, {
+         success: function (data) {
+             console.info('succesfully started mysql');
+             $("#warningRow").addClass("hidden");
+             $("#successRow").removeClass("hidden");
+             $("#successMessage").text(data.message);
+
+         }
+     });
+   });
+
+
 
      $("#stop-loopback-button").click(function () {
                $("#warningRow").removeClass("hidden");

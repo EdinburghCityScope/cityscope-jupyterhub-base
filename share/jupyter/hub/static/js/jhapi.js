@@ -166,5 +166,15 @@ define(['jquery', 'utils'], function ($, utils) {
         );
     };
 
+
+    JHAPI.prototype.start_mysql = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'POST', dataType: null});
+        this.api_request(
+            utils.url_path_join('users', user, 'mysql'),
+            options
+        );
+    };
+
     return JHAPI;
 });
