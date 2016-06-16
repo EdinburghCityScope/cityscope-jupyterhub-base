@@ -58,6 +58,8 @@ from .utils import (
 from .auth import Authenticator, PAMAuthenticator
 from .spawner import Spawner, LocalProcessSpawner
 from .data_api_spawner import DataApiSpawner,LocalLoopbackProcessSpawner,DockerProcessSpawner
+from .mysql_spawner import MySQLSpawner,MySQLProcessSpawner
+
 
 common_aliases = {
     'log-level': 'Application.log_level',
@@ -176,7 +178,9 @@ class JupyterHub(Application):
         PAMAuthenticator,
         DataApiSpawner,
         LocalLoopbackProcessSpawner,
-        DockerProcessSpawner
+        DockerProcessSpawner,
+        MySQLSpawner,
+        MySQLProcessSpawner
     ])
 
     config_file = Unicode('jupyterhub_config.py', config=True,
@@ -369,6 +373,12 @@ class JupyterHub(Application):
         config=True,
         help="""The class to use for spawning data api servers. Should be a subclass of DataApiSpawner"""
     )
+
+    mysql_spawner_class = Type(MySQLSpawner,
+        config=True,
+        help="""The class to use for spawning data api servers. Should be a subclass of MySQLSpawner"""
+    )
+
     db_url = Unicode('sqlite:///jupyterhub.sqlite', config=True,
         help="url for the database. e.g. `sqlite:///jupyterhub.sqlite`"
     )
