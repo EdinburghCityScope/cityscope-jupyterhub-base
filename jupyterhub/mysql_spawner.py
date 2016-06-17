@@ -388,7 +388,7 @@ class MySQLProcessSpawner(MySQLSpawner):
         config=True,
         help=dedent(
             """
-            If set, DockerProcessSpawner will configure the containers to use
+            If set, MySQLProcessSpawner will configure the containers to use
             the specified IP to connect the hub api.  This is useful
             when the hub_api is bound to listen on all ports or is
             running inside of a container.
@@ -497,7 +497,7 @@ class MySQLProcessSpawner(MySQLSpawner):
         return "{}-{}".format(self.container_prefix, self.escaped_name)
 
     def get_state(self):
-        state = super(DockerProcessSpawner, self).get_state()
+        state = super(MySQLProcessSpawner, self).get_state()
         if self.container_id:
             state['container_id'] = self.container_id
         return state
@@ -700,5 +700,5 @@ class MySQLProcessSpawner(MySQLSpawner):
 
     def clear_state(self):
         """clear pid state"""
-        super(MYSQL_ROOT_PASSWORDProcessSpawner, self).clear_state()
+        super(MySQLProcessSpawner, self).clear_state()
         self.container_id = ''

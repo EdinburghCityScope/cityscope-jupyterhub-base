@@ -26,6 +26,7 @@ $(document).ready(function()
     console.info(user);
 
     $("#stop-loopback-button").hide();
+    $("#stop-mysql-button").hide();
     $("#setup-data-button").hide();
     $("#start-mysql-button").show();
 
@@ -105,6 +106,8 @@ $(document).ready(function()
              $("#warningRow").addClass("hidden");
              $("#successRow").removeClass("hidden");
              $("#successMessage").text(data.message);
+             $("#stop-mysql-button").show();
+             $("#start-mysql-button").hide();
 
          }
      });
@@ -127,6 +130,22 @@ $(document).ready(function()
             }
         });
     });
+
+    $("#stop-mysql-button").click(function () {
+              $("#warningRow").removeClass("hidden");
+              $("#warningMessage").text("Stopping mysql, please wait...");
+       api.stop_mysql(user, {
+           success: function () {
+               console.info('succesfully stopped mysql');
+               $("#warningRow").addClass("hidden");
+               $("#successRow").removeClass("hidden");
+               $("#successMessage").text("MySQL stopped.");
+               $("#stop-mysql-button").hide();
+               $("#start-mysql-button").show();
+
+           }
+       });
+   });
 
 });
 

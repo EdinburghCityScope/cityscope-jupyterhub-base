@@ -176,5 +176,15 @@ define(['jquery', 'utils'], function ($, utils) {
         );
     };
 
+    JHAPI.prototype.stop_mysql = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'DELETE', dataType: null});
+        this.api_request(
+            utils.url_path_join('users', user, 'mysql'),
+            options
+        );
+    };
+
+
     return JHAPI;
 });

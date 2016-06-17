@@ -115,20 +115,12 @@ class UserMySQLAPIHandler(APIHandler):
     @admin_or_self
     def post(self, name):
         user = self.find_user(name)
-        print("MySQL startup")
 
         length = 13
         chars = string.ascii_letters + string.digits + "!$"
         random.seed = (urandom(1024))
         new_credential = "".join(chars[ord(urandom(1)) % len(chars)] for i in range(length))
-        hub = user.db.query(orm.Hub).first()
-        mysql_spawner = MySQLProcessSpawner(
-            user=user,
-            db=user.db,
-            hub=hub,
-            authenticator=user.authenticator,
-            config=user.settings.get('config'),
-            )
+        mysql_spawner = user.mysql_spawner
 
         new = yield mysql_spawner.start(credential=new_credential)
         if new:
@@ -151,24 +143,26 @@ class UserMySQLAPIHandler(APIHandler):
         #except errors.NotFound:
         #    print("container not found")
         mysql_spawner.clear_state()
+        message = "MySQL shutdown"
+        response = { 'message' : message}
+        self.write(response)
         self.set_status(201)
 
     @gen.coroutine
     @admin_or_self
     def put(self, name):
         user = self.find_user(name)
-        response = { 'message' : 'Cannot edit MySQL config: setup complete'}
+        response = { 'message' : 'Edit MySQL config via API Forbidden: setup complete'}
         self.write(response)
-        self.set_status(201)
+        self.set_status(401)
 
     @gen.coroutine
     @admin_or_self
     def get(self,name):
         user = self.find_user(name)
-        print("MySQL status")
         mysql_spawner = user.mysql_spawner
         status = mysql_spawner.get_state()
-        print(status)
+        print("MySQL Status: status")
         if status is not None:
             if "pid" in status:
                 self.set_status(200)

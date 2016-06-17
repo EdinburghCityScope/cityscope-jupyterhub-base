@@ -15,7 +15,7 @@ from . import orm
 from traitlets import HasTraits, Any, Dict
 from .spawner import LocalProcessSpawner
 from .data_api_spawner import LocalLoopbackProcessSpawner,DockerProcessSpawner
-
+from .mysql_spawner import MySQLProcessSpawner
 
 class UserDict(dict):
     """Like defaultdict, but for users
@@ -97,6 +97,7 @@ class User(HasTraits):
     orm_user = None
     spawner = None
     data_api_spawner = None
+    mysql_spawner = None
     spawn_pending = False
     stop_pending = False
 
@@ -138,7 +139,17 @@ class User(HasTraits):
             authenticator=self.authenticator,
             config=self.settings.get('config'),
         )
-        
+
+
+        self.mysql_spawner = MySQLProcessSpawner(
+            user=self,
+            db=self.db,
+            hub=hub,
+            authenticator=self.authenticator,
+            config=self.settings.get('config'),
+        )
+
+
     # pass get/setattr to ORM user
 
     def __getattr__(self, attr):
