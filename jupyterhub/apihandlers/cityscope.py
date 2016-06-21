@@ -175,7 +175,91 @@ class UserMySQLAPIHandler(APIHandler):
 
 
 
+
+class UserWordpressAPIHandler(APIHandler):
+
+    def admin_or_self(method):
+        """Decorator for restricting access to either the target user or admin"""
+        def m(self, name):
+            current = self.get_current_user()
+            if current is None:
+                raise web.HTTPError(403)
+            if not (current.name == name or current.admin):
+                raise web.HTTPError(403)
+
+            # raise 404 if not found
+            if not self.find_user(name):
+                raise web.HTTPError(404)
+            return method(self, name)
+        return m
+
+    @gen.coroutine
+    @admin_or_self
+    def post(self, name):
+        user = self.find_user(name)
+
+        length = 13
+        chars = string.ascii_letters + string.digits + "!$"
+        random.seed = (urandom(1024))
+        new_credential = "".join(chars[ord(urandom(1)) % len(chars)] for i in range(length))
+        wordpress_spawner = user.wordpress_spawner
+
+        new = yield wordpress_spawner.start(credential=new_credential)
+        if new:
+            message = "Wordpress startup complete, initial password is set to "+new_credential+" please make a safe note of this!"
+        else:
+            message = "Wordpress startup complete"
+
+        response = { 'message' : message}
+        self.write(response)
+        self.set_status(201)
+
+    @gen.coroutine
+    @admin_or_self
+    def delete(self, name):
+        user = self.find_user(name)
+        print("Wordpress shutdown")
+        wordpress_spawner = user.wordpress_spawner
+        #try:
+        yield wordpress_spawner.stop()
+        #except errors.NotFound:
+        #    print("container not found")
+        wordpress_spawner.clear_state()
+        message = "Wordpress shutdown"
+        response = { 'message' : message}
+        self.write(response)
+        self.set_status(201)
+
+    @gen.coroutine
+    @admin_or_self
+    def put(self, name):
+        user = self.find_user(name)
+        response = { 'message' : 'Edit Wordpress config via API Forbidden: setup complete'}
+        self.write(response)
+        self.set_status(401)
+
+    @gen.coroutine
+    @admin_or_self
+    def get(self,name):
+        user = self.find_user(name)
+        wordpress_spawner = user.wordpress_spawner
+        status = wordpress_spawner.get_state()
+        print("Wordpress Status: status")
+        if status is not None:
+            if "pid" in status:
+                self.set_status(200)
+            elif "container_id" in status:
+                self.set_status(200)
+            else:
+                self.set_status(204)
+        else:
+            self.set_status(204)
+
+
+
+
 default_handlers = [
     (r"/api/users/([^/]+)/loopback", UserLoopbackAPIHandler),
-    (r"/api/users/([^/]+)/mysql", UserMySQLAPIHandler)
+    (r"/api/users/([^/]+)/mysql", UserMySQLAPIHandler),
+    (r"/api/users/([^/]+)/wordpress", UserWordpressAPIHandler)
 ]

@@ -59,7 +59,7 @@ from .auth import Authenticator, PAMAuthenticator
 from .spawner import Spawner, LocalProcessSpawner
 from .data_api_spawner import DataApiSpawner,LocalLoopbackProcessSpawner,DockerProcessSpawner
 from .mysql_spawner import MySQLSpawner,MySQLProcessSpawner
-
+from .wordpress_spawner import WordpressSpawner,WordpressProcessSpawner
 
 common_aliases = {
     'log-level': 'Application.log_level',
@@ -180,7 +180,9 @@ class JupyterHub(Application):
         LocalLoopbackProcessSpawner,
         DockerProcessSpawner,
         MySQLSpawner,
-        MySQLProcessSpawner
+        MySQLProcessSpawner,
+        WordpressSpawner,
+        WordpressProcessSpawner
     ])
 
     config_file = Unicode('jupyterhub_config.py', config=True,
@@ -376,8 +378,14 @@ class JupyterHub(Application):
 
     mysql_spawner_class = Type(MySQLSpawner,
         config=True,
-        help="""The class to use for spawning data api servers. Should be a subclass of MySQLSpawner"""
+        help="""The class to use for spawning mysql servers. Should be a subclass of MySQLSpawner"""
     )
+
+    wordpress_spawner_class = Type(WordpressSpawner,
+        config=True,
+        help="""The class to use for spawning wordpress servers. Should be a subclass of WordpressSpawner"""
+    )
+
 
     db_url = Unicode('sqlite:///jupyterhub.sqlite', config=True,
         help="url for the database. e.g. `sqlite:///jupyterhub.sqlite`"

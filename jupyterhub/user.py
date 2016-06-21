@@ -16,6 +16,7 @@ from traitlets import HasTraits, Any, Dict
 from .spawner import LocalProcessSpawner
 from .data_api_spawner import LocalLoopbackProcessSpawner,DockerProcessSpawner
 from .mysql_spawner import MySQLProcessSpawner
+from .wordpress_spawner import WordpressProcessSpawner
 
 class UserDict(dict):
     """Like defaultdict, but for users
@@ -98,6 +99,7 @@ class User(HasTraits):
     spawner = None
     data_api_spawner = None
     mysql_spawner = None
+    wordpress_spawner = None
     spawn_pending = False
     stop_pending = False
 
@@ -148,6 +150,15 @@ class User(HasTraits):
             authenticator=self.authenticator,
             config=self.settings.get('config'),
         )
+
+        self.wordpress_spawner = WordpressProcessSpawner(
+           user=self,
+           db=self.db,
+           hub=hub,
+           authenticator=self.authenticator,
+           config=self.settings.get('config'),
+       )
+
 
 
     # pass get/setattr to ORM user
