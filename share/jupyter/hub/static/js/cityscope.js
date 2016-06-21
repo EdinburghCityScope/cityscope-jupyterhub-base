@@ -27,9 +27,10 @@ $(document).ready(function()
 
     $("#stop-loopback-button").hide();
     $("#stop-mysql-button").hide();
+    $("#stop-wordpress-button").hide();
     $("#setup-data-button").hide();
     $("#start-mysql-button").show();
-
+    $("#start-wordpress-button").show();
 
     api.get_loopback_status(user,{
       success: function(xhr) {
@@ -113,6 +114,21 @@ $(document).ready(function()
      });
    });
 
+   $("#start-wordpress-button").click(function () {
+     $("#warningRow").removeClass("hidden");
+     $("#warningMessage").text("Starting Wordpress, please wait...");
+      api.start_wordpress(user, {
+        success: function (data) {
+            console.info('succesfully started Wordpress');
+            $("#warningRow").addClass("hidden");
+            $("#successRow").removeClass("hidden");
+            $("#successMessage").text(data.message);
+            $("#stop-wordpress-button").show();
+            $("#start-wordpress-button").hide();
+
+        }
+    });
+   });
 
 
      $("#stop-loopback-button").click(function () {
@@ -146,6 +162,23 @@ $(document).ready(function()
            }
        });
    });
+
+   $("#stop-wordpress-button").click(function () {
+             $("#warningRow").removeClass("hidden");
+             $("#warningMessage").text("Stopping Wordpress, please wait...");
+      api.stop_wordpress(user, {
+          success: function () {
+              console.info('succesfully stopped Wordpress');
+              $("#warningRow").addClass("hidden");
+              $("#successRow").removeClass("hidden");
+              $("#successMessage").text("Wordpress stopped.");
+              $("#stop-wordpress-button").hide();
+              $("#start-wordpress-button").show();
+
+          }
+      });
+  });
+
 
 });
 

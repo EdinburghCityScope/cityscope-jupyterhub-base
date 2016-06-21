@@ -185,6 +185,24 @@ define(['jquery', 'utils'], function ($, utils) {
         );
     };
 
+    JHAPI.prototype.start_wordpress = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'POST', dataType: null});
+        this.api_request(
+            utils.url_path_join('users', user, 'wordpress'),
+            options
+        );
+    };
+
+    JHAPI.prototype.stop_wordpress = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'DELETE', dataType: null});
+        this.api_request(
+            utils.url_path_join('users', user, 'wordpress'),
+            options
+        );
+    };
+
 
     return JHAPI;
 });
