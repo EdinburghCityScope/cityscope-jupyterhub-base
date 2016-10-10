@@ -385,7 +385,7 @@ class LocalLoopbackProcessSpawner(DataApiSpawner):
             self.github_file_copies(repository)
 
     @gen.coroutine
-    def start(self):
+    def start(self,credential):
         """Start the process"""
 
         cmd = []
@@ -527,7 +527,7 @@ class DockerProcessSpawner(DataApiSpawner):
 
     container_id = Unicode()
     container_ip = Unicode('127.0.0.1', config=True)
-    container_image = Unicode("romandgood/cityscope-loopback", config=True)
+    container_image = Unicode("cityscope/cityscope-loopback", config=True)
     notebook_container_prefix = Unicode(
         "jupyter",
         config=True,
