@@ -930,6 +930,8 @@ class DockerProcessSpawner(DataApiSpawner):
             host_config = self.client.create_host_config(**host_config)
             create_kwargs.setdefault('host_config', {}).update(host_config)
 
+            for volume in self.volume_binds.keys():
+                yield self.docker('create_volume', name=volume, driver='convoy')
 
             # create the container
             resp = yield self.docker('create_container', **create_kwargs)
