@@ -13,12 +13,12 @@ from .login import LoginHandler
 
 class RootHandler(BaseHandler):
     """Render the Hub root page.
-    
+
     If logged in, redirects to:
-    
+
     - single-user server if running
     - hub home, otherwise
-    
+
     Otherwise, renders login page.
     """
     def get(self):
@@ -47,11 +47,21 @@ class HomeHandler(BaseHandler):
         self.finish(html)
 
 
+class DataImportHandler(BaseHandler):
+    """Render the add-dataset form"""
+    @web.authenticated
+    def get(self):
+        html = self.render_template('fileupload.html',
+            user=self.get_current_user(),
+        )
+        self.finish(html)
+
+
 class SpawnHandler(BaseHandler):
     """Handle spawning of single-user servers via form.
-    
+
     GET renders the form, POST handles form submission.
-    
+
     Only enabled when Spawner.options_form is defined.
     """
     def _render_form(self, message=''):
@@ -77,7 +87,7 @@ class SpawnHandler(BaseHandler):
             # not running, no form. Trigger spawn.
             url = url_path_join(self.base_url, 'user', user.name)
             self.redirect(url)
-    
+
     @web.authenticated
     @gen.coroutine
     def post(self):
@@ -122,14 +132,14 @@ class AdminHandler(BaseHandler):
         }
         sorts = self.get_arguments('sort') or default_sort
         orders = self.get_arguments('order')
-        
+
         for bad in set(sorts).difference(available):
             self.log.warn("ignoring invalid sort: %r", bad)
             sorts.remove(bad)
         for bad in set(orders).difference({'asc', 'desc'}):
             self.log.warn("ignoring invalid order: %r", bad)
             orders.remove(bad)
-        
+
         # add default sort as secondary
         for s in default_sort:
             if s not in sorts:
@@ -139,17 +149,17 @@ class AdminHandler(BaseHandler):
                 orders.append(default_order[col])
         else:
             orders = orders[:len(sorts)]
-        
+
         # this could be one incomprehensible nested list comprehension
         # get User columns
         cols = [ getattr(orm.User, mapping.get(c, c)) for c in sorts ]
         # get User.col.desc() order objects
         ordered = [ getattr(c, o)() for c, o in zip(cols, orders) ]
-        
+
         users = self.db.query(orm.User).order_by(*ordered)
         users = [ self._user_from_orm(u) for u in users ]
         running = [ u for u in users if u.running ]
-        
+
         html = self.render_template('admin.html',
             user=self.get_current_user(),
             admin_access=self.settings.get('admin_access', False),
@@ -165,4 +175,5 @@ default_handlers = [
     (r'/home', HomeHandler),
     (r'/admin', AdminHandler),
     (r'/spawn', SpawnHandler),
+    (r'/add-dataset',DataImportHandler)
 ]
