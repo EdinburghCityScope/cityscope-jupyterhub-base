@@ -1,0 +1,27 @@
+{% extends "page.html" %}
+
+{% block main %}
+
+<div class="container">
+    <div class="row">
+        <h3>Upload a dataset</h3>
+        <p>You can contribute to Edinburgh CityScope by uploading your own dataset.
+            At the moment we accept csv files up to a maximum of 50mb</p>
+        <form enctype="multipart/form-data" action="{{base_url}}add-dataset" method="post">
+            <div class="form-group"  id="fileUploadDiv">
+			        <label class="control-label" for="filearg">Select a file</label>
+			        <input type="file" accept=".csv,text/plain" name="filearg" id="fileInput"/>
+                    <span id="errorBlock" class="help-block has-error"></span>
+            </div>
+            <a href="{{base_url}}home" class="btn btn-default" role="button">Cancel</a>
+            <input type="submit" class="btn btn-primary" id="DataUploadSubmit" value="upload dataset" />
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+{% block script %}
+<script type="text/javascript">
+require(["dataupload"]);
+</script>
+{% endblock %}
