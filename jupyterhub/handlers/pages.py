@@ -47,16 +47,6 @@ class HomeHandler(BaseHandler):
         self.finish(html)
 
 
-class DataImportHandler(BaseHandler):
-    """Render the add-dataset form"""
-    @web.authenticated
-    def get(self):
-        html = self.render_template('fileupload.html',
-            user=self.get_current_user(),
-        )
-        self.finish(html)
-
-
 class SpawnHandler(BaseHandler):
     """Handle spawning of single-user servers via form.
 
@@ -169,11 +159,9 @@ class AdminHandler(BaseHandler):
         )
         self.finish(html)
 
-
 default_handlers = [
     (r'/', RootHandler),
     (r'/home', HomeHandler),
     (r'/admin', AdminHandler),
     (r'/spawn', SpawnHandler),
-    (r'/add-dataset',DataImportHandler)
 ]
