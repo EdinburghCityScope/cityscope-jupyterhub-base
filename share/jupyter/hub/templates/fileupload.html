@@ -3,7 +3,19 @@
 {% block main %}
 
 <div class="container">
-    <div class="row {{message_class}}">{{messages}}</div>
+    {% if messages %}
+    <div class="row">
+        <div class="{{message_class}}">
+            <strong>{% if uploaded %}Success{% else%}Error{% endif %}</strong>
+            <ul>
+              {% for message in messages %}
+                  <li>{{message}}</li>
+              {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row">
         <h3>Upload a dataset</h3>
         <p>You can contribute to Edinburgh CityScope by uploading your own dataset.
@@ -12,12 +24,36 @@
             <div class="form-group {{form_class}}"  id="fileUploadDiv">
 			        <label class="control-label" for="filearg">Select a file</label>
 			        <input type="file" accept=".csv,text/plain" name="filearg" id="fileInput"/>
-                    <span id="errorBlock" class="help-block">{{error_message}}</span>
+                    <span id="errorBlock" class="help-block">
+                        {% if error_message %}
+                            <ul>
+                              {% for errMsg in error_message %}
+                                  <li>{{errMsg}}</li>
+                              {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </span>
             </div>
             <a href="{{base_url}}home" class="btn btn-default" role="button">Cancel</a>
             <input type="submit" class="btn btn-primary" id="DataUploadSubmit" value="upload dataset" />
         </form>
     </div>
+
+
+    {% if datasets %}
+    <div class="clearfix">&nbsp;</div>
+    <div class="row">
+        <div>
+            <h4>Local Datasets - already uploaded</h4>
+            <ul>
+              {% for dataset in datasets %}
+                  <li>{{dataset['file_name']}} ({{dataset['last_modified']}})</li>
+              {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 
 {% endblock %}
