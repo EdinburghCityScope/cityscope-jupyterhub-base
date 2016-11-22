@@ -13,6 +13,7 @@ import string
 import sys
 import grp
 import tarfile
+import base64
 from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
 
@@ -351,22 +352,17 @@ class LocalLoopbackProcessSpawner(DataApiSpawner):
         github = Github(login_or_token=self.github_api_token);
         repo = github.get_repo(repository)
         print("Getting notebooks")
-        for contentFile in repo.get_dir_contents("notebooks"):
-            print(contentFile.name)
-            filename = self.notebook_base_dir.replace("%U",self.user.name)+repo.name+"/notebooks/"+contentFile.name
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with open(filename, "wb") as f:
-                print("Writing :",filename)
-                f.write(contentFile.decoded_content)
-            f.closed
-        print("Getting data")
-        for contentFile in repo.get_dir_contents("data"):
-            filename = self.notebook_base_dir.replace("%U",self.user.name)+repo.name+"/data/"+contentFile.name
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with open(filename, "wb") as f:
-                print("Writing :",filename)
-                f.write(contentFile.decoded_content)
-            f.closed
+        result = repo.get_git_tree("master?recursive=1")
+        for treeElement in result.tree:
+            if ((treeElement.type=="blob") and (treeElement.path.startswith("notebooks/") or treeElement.path.startswith("data/"))):
+                print(treeElement.path)
+                blob = repo.get_git_blob(treeElement.sha)
+                filename = self.notebook_base_dir.replace("%U",self.user.name)+"/"+repo.name+"/"+treeElement.path
+                os.makedirs(os.path.dirname(filename), exist_ok=True)
+                with open(filename, "wb") as f:
+                    print("Writing :",filename)
+                    f.write(base64.b64decode(blob.content))
+                    f.closed
 
     @gen.coroutine
     def setup_data(self,data):
@@ -802,24 +798,21 @@ class DockerProcessSpawner(DataApiSpawner):
     def github_file_copies(self,repository):
         """Do notebook and CSV data copies from a repository"""
         self.log.info("Getting info from: {0}".format(repository))
+
         github = Github(login_or_token=self.github_api_token);
         repo = github.get_repo(repository)
-        self.log.info("Getting notebooks")
-        for contentFile in repo.get_dir_contents("notebooks"):
-            filename = "/tmp/"+self.user.name+"/"+repo.name+"/notebooks/"+contentFile.name
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with open(filename, "wb") as f:
-                self.log.debug("Writing :",filename)
-                f.write(contentFile.decoded_content)
-            f.closed
         self.log.info("Getting data")
-        for contentFile in repo.get_dir_contents("data"):
-            filename = "/tmp/"+self.user.name+"/"+repo.name+"/data/"+contentFile.name
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with open(filename, "wb") as f:
-                self.log.debug("Writing :",filename)
-                f.write(contentFile.decoded_content)
-            f.closed
+        result = repo.get_git_tree("master?recursive=1")
+        for treeElement in result.tree:
+            if ((treeElement.type=="blob") and (treeElement.path.startswith("notebooks/") or treeElement.path.startswith("data/"))):
+                self.log.info(treeElement.path)
+                blob = repo.get_git_blob(treeElement.sha)
+                filename = "/tmp/"+self.user.name+"/"+repo.name+"/"+treeElement.path
+                os.makedirs(os.path.dirname(filename), exist_ok=True)
+                with open(filename, "wb") as f:
+                    self.log.debug("Writing :",filename)
+                    f.write(base64.b64decode(blob.content))
+                    f.closed
         self.log.info("Creating tar file")
         tar = tarfile.open("/tmp/"+self.user.name+".tar","w")
         tar.add(arcname=os.path.basename(""), name="/tmp/"+self.user.name)
