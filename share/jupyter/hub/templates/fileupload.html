@@ -45,11 +45,30 @@
     <div class="row">
         <div>
             <h4>Local Datasets - already uploaded</h4>
-            <ul>
-              {% for dataset in datasets %}
-                  <li>{{dataset['file_name']}} ({{dataset['last_modified']}})</li>
-              {% endfor %}
-            </ul>
+            <form id="dataset-form">
+            <table id="github-repositories" class="table">
+                <thead>
+                    <tr>
+                        <th>Dataset name</th>
+                        <th>Delete</th>
+                        <th>Date</th>
+                        <th>Use data</th>
+                        <th>Publish<th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for dataset in datasets %}
+                    <tr>
+                        <td>{{dataset['file_name']}}</td>
+                        <td><a target="_blank" href="#file={{dataset['file_id']}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></td>
+                        <td>{{dataset['last_modified']}}</td>
+                        <td><input name="" value="" type="checkbox"></td>
+                        <td><input type="button" class="btn btn-primary" id="PublishDatasetButton" alt="Publish this as an OpenData repository on GitHub" value="Publish" /></td>
+                    </tr>
+                {% endfor %}
+                <tbody>
+            </table>
+            </form>
         </div>
     </div>
     {% endif %}

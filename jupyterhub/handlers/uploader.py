@@ -133,7 +133,7 @@ class DataImportHandler(BaseHandler):
         if (file_extension.lower() != '.csv'):
             self.error_message.append('Only csv files are accepted')
         # make your file name a nice ascii formatted string.
-        newname = stringFormat(filename)
+        newname = format_string(filename)
         if (newname == ''): # if there are no ascii characters, name the file after the user.
             user = self.get_current_user()
             newname = user.name
@@ -162,46 +162,14 @@ class DataImportHandler(BaseHandler):
 class HelloHandler(BaseHandler):
 
     def get(self):
-        user = self.get_current_user()
-        userhome = os.path.expanduser('~')
-        self.write("Hello {0}. Your home is {1}".format(user.name,userhome))
         msg = []
         err_msg = []
         original_name = '_Antonín_Dvořák_QA-(*)_(^!~#\'-"?=9  bcà@HéÉç_-'
         originalFile = original_name + '.csv'
         #filename = re.sub('[^0-9a-zA-Z+_. ]+', '_', original_name)
-        filename = stringFormat(original_name)
-        #filename = stringFormat(original_name)
+        filename = format_string(original_name)
         cname = filename + '.csv'
-        msg.append("New string: {0}, was: {1}".format(cname,originalFile))
-
-        temp_file = __UPLOADS__ + 'test.csv'
-        if os.path.isfile(temp_file):
-            csvfile = open(temp_file, newline='')
-            firstline = csvfile.readline()
-            #filecontent = csvfile.read()
-            samplecontent = firstline + csvfile.readline()
-
-            msg.append('opened {0}'.format(temp_file))
-            msg.append('firstline is: {0}'.format(firstline))
-            msg.append('samplecontent is: {0}'.format(samplecontent))
-
-            try:
-                dialect = csv.Sniffer().sniff(samplecontent)
-                msg.append('dialect delimiter = {0}'.format(dialect.delimiter))
-            except Exception as err:
-                err_msg.append('Could not determine dialect: {0}'.format(err))
-            print(dialect)
-            try:
-                header = csv.Sniffer().has_header(samplecontent)
-                msg.append('header exists = {0}'.format(header))
-            except Exception as err:
-                err_msg.append('Could not determine header: {0}'.format(err))
-            print(header)
-
-            # close the file
-            csvfile.close()
-
+        msg.append("<p>Renamed: <br/>{1} to: <br/> {0}</p>".format(cname,originalFile))
 
         if len(msg):
             self.write("Messages:")
@@ -231,16 +199,19 @@ def list_datasets():
     for fname in file_list:
         local_file = dataset_dir + fname
         modified    = os.path.getmtime(local_file)
-        datasets.append({'file_name':fname, 'last_modified':time.ctime(modified)})
-
+        datasets.append({'file_name':fname, 'last_modified':time.ctime(modified), 'file_id':id(fname)})
     return datasets
 
 
-def stringFormat(string_arg):
-    # return a string that only has alphanumeric and underscores
+def format_string(string_arg):
+    # return a string that only has alphanumeric or hyphens
+    string_arg = string_arg.replace(" ","-")
+    string_arg = string_arg.replace("_","-")
     nkfd_form = unicodedata.normalize('NFKD', string_arg)
     new_string = u''.join([c for c in nkfd_form if not unicodedata.combining(c)])
-    return  re.sub('[^a-zA-Z_0-9+_+-.]+', '', new_string.lower()).strip("-_")
+    new_string = re.sub('[^a-zA-Z_0-9+_+-.]+', '', new_string.lower()).strip("-_")
+    new_string = re.sub('-+','-',new_string)
+    return  new_string
 
 
 default_handlers = [
