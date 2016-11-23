@@ -36,7 +36,7 @@ WORKDIR /srv/
 ADD . /srv/jupyterhub
 WORKDIR /srv/jupyterhub/
 
-RUN python setup.py js && pip install . && \
+RUN python setup.py js && pip install -r requirements.txt && pip install . && \
     rm -rf node_modules ~/.cache ~/.npm
 
 WORKDIR /srv/jupyterhub/
