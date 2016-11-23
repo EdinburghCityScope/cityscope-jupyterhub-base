@@ -129,9 +129,11 @@ class DataImportHandler(BaseHandler):
     def save_file(self,fileinfo):
         fname = fileinfo['filename']
         filename, file_extension = os.path.splitext(fname)
+        print(fileinfo)
+        if (fileinfo['content_type'].lower() != 'text/csv') or (file_extension.lower() != '.csv'):
+            self.error_message.append('Only csv files are accepted.')
+            self.delete_file = True
 
-        if (file_extension.lower() != '.csv'):
-            self.error_message.append('Only csv files are accepted')
         # make your file name a nice ascii formatted string.
         newname = format_string(filename)
         if (newname == ''): # if there are no ascii characters, name the file after the user.
