@@ -5,6 +5,7 @@ from ..utils import admin_only, url_path_join
 from .base import BaseHandler
 from .login import LoginHandler
 import os, re, unicodedata, csv, sys, time
+from slugify import slugify
 
 __UPLOADS__ = os.path.expanduser('~') + "/datasets/"
 _MAXFILESIZE = 50 * 1024 * 1024 # 50mb
@@ -26,6 +27,7 @@ class DataImportHandler(BaseHandler):
         self.form_class = form_class
         self.delete_file = delete_file
         self.file_uploaded = file_uploaded
+        self.template = 'fileupload.html'
 
     ###############################
     #######  main  methods  #######
@@ -107,20 +109,22 @@ class DataImportHandler(BaseHandler):
             self.file_uploaded = False
             self.message_class = 'bg-danger'
             self.form_class = 'has-error'
+            self.template = 'fileupload.html'
         else:
             self.file_uploaded = True
             self.message_class = 'bg-success'
             self.messages.append("File upload successful.")
+            self.template = 'list_datasets.html'
 
 
     def render_page(self):
-        html = self.render_template('fileupload.html',
+        html = self.render_template(self.template,
         user=self.get_current_user(),
         messages = self.messages,
         error_message = self.error_message,
         message_class = self.message_class,
         form_class = self.form_class,
-        uploaded = self.file_uploaded,
+        successful = self.file_uploaded,
         datasets = list_datasets(),
         )
         self.finish(html)
@@ -159,14 +163,12 @@ class DataImportHandler(BaseHandler):
         return savedpath
 
 
-
-
 class HelloHandler(BaseHandler):
 
     def get(self):
         msg = []
         err_msg = []
-        original_name = '_Antonín_Dvořák_QA-(*)_(^!~#\'-"?=9  bcà@HéÉç_-'
+        original_name = '_Antonín_Dvořák_QA-(*)_(^!~#\'-"?=9  bcà@HéÉç_-Компьютер'
         originalFile = original_name + '.csv'
         #filename = re.sub('[^0-9a-zA-Z+_. ]+', '_', original_name)
         filename = format_string(original_name)
@@ -194,6 +196,66 @@ class HelloHandler(BaseHandler):
         self.write("</ol>")
 
 
+class DeleteDatasetHandler(BaseHandler):
+
+    @web.authenticated
+    def get(self, slug):
+        self.messages = []
+        self.message_class = ''
+        self.file_deleted = False
+
+        if not slug: raise tornado.web.HTTPError(404)
+
+        savedpath = __UPLOADS__ + slug
+        if os.path.isfile(savedpath):
+            try:
+                os.remove(savedpath)
+                self.file_deleted = True
+            except Exception as err:
+                self.messages.append("Oops - Could not delete file: {0}. Error: {1}</p>".format(slug,err))
+        else:
+            self.messages.append("Oops - Could not find: {0}".format(slug))
+
+        if self.file_deleted == True:
+            self.messages.append("Deleted file: {0}".format(slug))
+            self.message_class = 'bg-success'
+        else:
+            self.message_class = 'bg-danger'
+
+        self.render_page()
+
+    def render_page(self):
+        html = self.render_template('list_datasets.html',
+        successful = self.file_deleted,
+        messages = self.messages,
+        message_class = self.message_class,
+        datasets = list_datasets(),
+        )
+        self.finish(html)
+
+
+class ListHandler(BaseHandler):
+    """View of uploaded csv files"""
+    @web.authenticated
+    def get(self):
+        print(self.config)
+        self.messages = []
+        self.message_class = ''
+        self.error_message = []
+        self.form_class = ''
+        self.render_page()
+
+
+    def render_page(self):
+        html = self.render_template('list_datasets.html',
+        messages = self.messages,
+        message_class = self.message_class,
+        datasets = list_datasets(),
+        )
+        self.finish(html)
+
+
+
 def list_datasets():
     dataset_dir = __UPLOADS__
     file_list = os.listdir(dataset_dir)
@@ -206,17 +268,20 @@ def list_datasets():
 
 
 def format_string(string_arg):
+    return slugify(string_arg)
     # return a string that only has alphanumeric or hyphens
-    string_arg = string_arg.replace(" ","-")
-    string_arg = string_arg.replace("_","-")
-    nkfd_form = unicodedata.normalize('NFKD', string_arg)
-    new_string = u''.join([c for c in nkfd_form if not unicodedata.combining(c)])
-    new_string = re.sub('[^a-zA-Z_0-9+_+-.]+', '', new_string.lower()).strip("-_")
-    new_string = re.sub('-+','-',new_string)
-    return  new_string
+    #string_arg = string_arg.replace(" ","-")
+    #string_arg = string_arg.replace("_","-")
+    #nkfd_form = unicodedata.normalize('NFKD', string_arg)
+    #new_string = u''.join([c for c in nkfd_form if not unicodedata.combining(c)])
+    #new_string = re.sub('[^a-zA-Z_0-9+_+-.]+', '', new_string.lower()).strip("-_")
+    #new_string = re.sub('-+','-',new_string)
+    #return  new_string
 
 
 default_handlers = [
     (r'/hello', HelloHandler),
     (r'/add-dataset',DataImportHandler),
+    (r'/list-datasets',ListHandler),
+    (r"/delete-dataset/([^/]+)", DeleteDatasetHandler),
 ]

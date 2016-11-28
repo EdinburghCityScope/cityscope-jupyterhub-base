@@ -6,7 +6,7 @@
     {% if messages %}
     <div class="row">
         <div class="{{message_class}}">
-            <strong>{% if uploaded %}Success{% else%}Error{% endif %}</strong>
+            <strong>{% if successful %}Success{% else%}Error{% endif %}</strong>
             <ul>
               {% for message in messages %}
                   <li>{{message}}</li>
