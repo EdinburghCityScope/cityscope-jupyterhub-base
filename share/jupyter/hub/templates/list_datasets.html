@@ -1,0 +1,62 @@
+{% extends "page.html" %}
+
+{% block main %}
+
+<div class="container">
+    {% if messages %}
+    <div class="row">
+        <div class="{{message_class}}">
+            <strong>{% if successful %}Success{% else%}Error{% endif %}</strong>
+            <ul>
+              {% for message in messages %}
+                  <li>{{message}}</li>
+              {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+    <div class="clearfix">&nbsp;</div>
+    <div class="row">
+        <div>
+        {% if datasets %}
+            <h4>Local Datasets - already uploaded</h4>
+            <form id="dataset-form">
+            <table id="github-repositories" class="table">
+                <thead>
+                    <tr>
+                        <th>Dataset name</th>
+                        <th>Delete</th>
+                        <th>Date</th>
+                        <th>View data</th>
+                        <th>Publish<th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for dataset in datasets %}
+                    <tr>
+                        <td>{{dataset['file_name']}}</td>
+                        <td><a href="{{base_url}}delete-dataset/{{dataset['file_name']}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></td>
+                        <td>{{dataset['last_modified']}}</td>
+                        <td><input name="" value="" type="checkbox"></td>
+                        <td><input type="button" class="btn btn-primary" id="PublishDatasetButton" alt="Publish this as an OpenData repository on GitHub" value="Publish" /></td>
+                    </tr>
+                {% endfor %}
+                <tbody>
+            </table>
+            </form>
+
+        {% else %}
+        <h4>No Datasets uploaded yet</h4>
+        <a id="data-uploader-button" class="btn btn-lg btn-success" href="{{base_url}}add-dataset">Add Dataset</a>
+        {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+{% block script %}
+<script type="text/javascript">
+    // require(["dataupload"]);
+</script>
+{% endblock %}
