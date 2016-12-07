@@ -1,4 +1,4 @@
-require(["jquery"], function () {
+require(["jquery","bootstrap"], function ($) {
 
     $('#DataUploadSubmit').click( function() {
         var errorStr = '';
@@ -25,5 +25,12 @@ require(["jquery"], function () {
             }
 		}
 	});
+
+	$(".modalPopUp").on("click", function(e){
+        //e.preventDefault();
+	        $("#modalPanel").modal().load(this.href);
+		    return false;
+    });
+
 
 });

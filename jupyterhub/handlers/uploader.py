@@ -4,23 +4,16 @@ from .. import orm
 from ..utils import admin_only, url_path_join
 from .base import BaseHandler
 from .login import LoginHandler
-import os, re, unicodedata, csv, sys, time
+import os, re, unicodedata, csv, sys, time, getpass, shutil
 from slugify import slugify
 
 __UPLOADS__ = os.path.expanduser('~') + "/datasets/"
 _MAXFILESIZE = 50 * 1024 * 1024 # 50mb
-# make sure the directory exists
-if not os.path.exists(__UPLOADS__):
-    try:
-        os.makedirs(__UPLOADS__)
-    except Exception as e:
-        #error_message.append('Unable to create directory: {0}'.format(__UPLOADS__))
-        raise RuntimeError('Unable to create dataset storage directory: {0}'.format(e))
 
 
 class DataImportHandler(BaseHandler):
     """Render the add-dataset form"""
-    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', delete_file = False, file_uploaded = False):
+    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', delete_file = False, file_uploaded = False, slug=''):
         self.messages = messages
         self.message_class = message_class
         self.error_message = error_message
@@ -28,6 +21,7 @@ class DataImportHandler(BaseHandler):
         self.delete_file = delete_file
         self.file_uploaded = file_uploaded
         self.template = 'fileupload.html'
+        self.slug = slug
 
     ###############################
     #######  main  methods  #######
@@ -48,7 +42,7 @@ class DataImportHandler(BaseHandler):
             self.check_file_size(savedpath)
             self.validate_file(savedpath)
             if self.delete_file is True:
-                self.remove_file(savedpath)
+                self.remove_file(self.slug)
 
         else:
             self.error_message.append('You forgot to select a file')
@@ -96,11 +90,13 @@ class DataImportHandler(BaseHandler):
                 self.messages = []
 
 
-    def remove_file(self,savedpath):
-            try:
-                os.remove(savedpath)
-            except:
-                self.error_message.append('Validation failed. Unable to delete file {0}. This has all gone wrong.'.format(fname))
+    def remove_file(self,slug):
+        savedpath = get_dataset_dir(slug)
+        try:
+            #os.remove(savedpath)
+            shutil.rmtree(savedpath)
+        except:
+            self.error_message.append('Validation failed. Unable to delete dataset {0}. This has all gone wrong.'.format(savedpath))
 
 
     def set_messages_classes(self):
@@ -114,12 +110,12 @@ class DataImportHandler(BaseHandler):
             self.file_uploaded = True
             self.message_class = 'bg-success'
             self.messages.append("File upload successful.")
-            self.template = 'list_datasets.html'
+            self.template = 'fileupload.html'
 
 
     def render_page(self):
         html = self.render_template(self.template,
-        user=self.get_current_user(),
+        user = get_user_uun(),
         messages = self.messages,
         error_message = self.error_message,
         message_class = self.message_class,
@@ -133,7 +129,7 @@ class DataImportHandler(BaseHandler):
     def save_file(self,fileinfo):
         fname = fileinfo['filename']
         filename, file_extension = os.path.splitext(fname)
-        print(fileinfo)
+        #print(fileinfo)
         if (fileinfo['content_type'].lower() != 'text/csv') or (file_extension.lower() != '.csv'):
             self.error_message.append('Only csv files are accepted.')
             self.delete_file = True
@@ -141,17 +137,18 @@ class DataImportHandler(BaseHandler):
         # make your file name a nice ascii formatted string.
         newname = format_string(filename)
         if (newname == ''): # if there are no ascii characters, name the file after the user.
-            user = self.get_current_user()
-            newname = user.name
+            newname = get_user_uun()
+        self.slug = newname
         cname = newname + file_extension
         if (newname != filename): # let the user know if the file was renamed
             self.messages.append('Your file was renamed from {0} to {1}'.format(fname,cname))
 
         # save the file to the users home directory.
-        savedpath =  __UPLOADS__ + cname
+        saved_dir_path = get_dataset_dir(newname)
+        saved_file_path =  saved_dir_path + 'data/' + cname
 
         try:
-            fh = open(savedpath, 'wb')
+            fh = open(saved_file_path, 'wb')
             fh.write(fileinfo['body'])
             fh.close()
             self.file_uploaded = True
@@ -160,7 +157,7 @@ class DataImportHandler(BaseHandler):
             self.messages = []
             self.file_uploaded = False
 
-        return savedpath
+        return saved_file_path
 
 
 class HelloHandler(BaseHandler):
@@ -184,7 +181,7 @@ class HelloHandler(BaseHandler):
             for e in err_msg:
                 self.write("{0}<br/>".format(e))
 
-        dataset_dir = __UPLOADS__
+        dataset_dir = get_uploads_dir()
         self.write("<p>Current files in: {0}<br/>".format(dataset_dir))
 
         file_list = os.listdir(dataset_dir)
@@ -195,9 +192,29 @@ class HelloHandler(BaseHandler):
             self.write("<li>{0} ({1})</li>".format(fname, time.ctime(modified)))
         self.write("</ol>")
 
+        self.write("<p>datasets dir = {0}</p>".format(dataset_dir))
+        self.write("<p>datasets dir = {0}</p>".format(self.get_current_user().name))
+
+        self.write("<ol>")
+        for dirname in file_list:
+            fullpath = get_uploads_dir() + dirname
+            if os.path.isdir(fullpath):
+                self.write("<li>{0}</li>".format(dirname))
+        self.write("</ol>")
+
+        self.write("<p>Parent directory name is: {}</p>".format(getpass.getuser()))
+
+
+class ConfirmDeleteDatasetHandler(BaseHandler):
+    @web.authenticated
+    def get(self, slug):
+        if not slug: raise tornado.web.HTTPError(404)
+        dataset_name = slug
+        html = self.render_template('confirm_delete.html', dataset_name = dataset_name,)
+        self.finish(html)
+
 
 class DeleteDatasetHandler(BaseHandler):
-
     @web.authenticated
     def get(self, slug):
         self.messages = []
@@ -206,18 +223,19 @@ class DeleteDatasetHandler(BaseHandler):
 
         if not slug: raise tornado.web.HTTPError(404)
 
-        savedpath = __UPLOADS__ + slug
-        if os.path.isfile(savedpath):
+        savedpath = get_dataset_dir(slug)
+        if os.path.isdir(savedpath):
             try:
-                os.remove(savedpath)
+                #os.remove(savedpath)
+                shutil.rmtree(savedpath)
                 self.file_deleted = True
             except Exception as err:
-                self.messages.append("Oops - Could not delete file: {0}. Error: {1}</p>".format(slug,err))
+                self.messages.append("Oops - Could not delete dataset: {0}. Error: {1}</p>".format(slug,err))
         else:
-            self.messages.append("Oops - Could not find: {0}".format(slug))
+            self.messages.append("Oops - Could not dataset: {0}".format(slug))
 
         if self.file_deleted == True:
-            self.messages.append("Deleted file: {0}".format(slug))
+            self.messages.append("Dataset: {0} deleted".format(slug))
             self.message_class = 'bg-success'
         else:
             self.message_class = 'bg-danger'
@@ -225,7 +243,7 @@ class DeleteDatasetHandler(BaseHandler):
         self.render_page()
 
     def render_page(self):
-        html = self.render_template('list_datasets.html',
+        html = self.render_template('fileupload.html',
         successful = self.file_deleted,
         messages = self.messages,
         message_class = self.message_class,
@@ -238,7 +256,6 @@ class ListHandler(BaseHandler):
     """View of uploaded csv files"""
     @web.authenticated
     def get(self):
-        print(self.config)
         self.messages = []
         self.message_class = ''
         self.error_message = []
@@ -254,16 +271,25 @@ class ListHandler(BaseHandler):
         )
         self.finish(html)
 
+def get_user_tree():
+    # /user/{{user.name}}/tree/datasets/{{fname}}
+    return '/user/' + get_user_uun() + '/tree/datasets/'
+
+def get_user_uun():
+    return getpass.getuser()
 
 
 def list_datasets():
-    dataset_dir = __UPLOADS__
-    file_list = os.listdir(dataset_dir)
+    dataset_dir = get_uploads_dir()
+    dir_names = os.listdir(dataset_dir)
+
     datasets = []
-    for fname in file_list:
-        local_file = dataset_dir + fname
-        modified    = os.path.getmtime(local_file)
-        datasets.append({'file_name':fname, 'last_modified':time.ctime(modified), 'file_id':id(fname)})
+    for dir_name in dir_names:
+        fullpath = dataset_dir + dir_name
+        if os.path.isdir(fullpath):
+            modified    = os.path.getmtime(fullpath)
+            user_tree = get_user_tree() + dir_name + '/'
+            datasets.append({'file_name':dir_name, 'last_modified':time.ctime(modified), 'file_link':user_tree})
     return datasets
 
 
@@ -279,9 +305,39 @@ def format_string(string_arg):
     #return  new_string
 
 
+def get_uploads_dir():
+    # make sure the uploads directory exists
+    if not os.path.isdir(__UPLOADS__):
+        try:
+            os.makedirs(__UPLOADS__)
+        except Exception as e:
+            raise RuntimeError('Unable to create upload storage directory: {0}'.format(e))
+    return __UPLOADS__
+
+
+def get_dataset_dir(dataset_name):
+
+    # does the dataset_name dir exist?
+    dataset_dir = get_uploads_dir() + dataset_name + '/'
+    if not os.path.isdir(dataset_dir):
+        try:
+            os.makedirs(dataset_dir)
+        except Exception as e:
+            raise RuntimeError('Unable to create dataset storage directory: {0}'.format(e))
+
+    # is there a the data directory under the dataset_dir folder?
+    data_dir = dataset_dir + 'data' + '/'
+    if not os.path.isdir(data_dir):
+        try:
+            os.makedirs(data_dir)
+        except Exception as e:
+            raise RuntimeError('Unable to create data storage directory: {0}'.format(e))
+
+    return dataset_dir
+
 default_handlers = [
     (r'/hello', HelloHandler),
     (r'/add-dataset',DataImportHandler),
-    (r'/list-datasets',ListHandler),
     (r"/delete-dataset/([^/]+)", DeleteDatasetHandler),
+    (r"/confirm-delete/([^/]+)", ConfirmDeleteDatasetHandler),
 ]

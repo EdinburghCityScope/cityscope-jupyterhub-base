@@ -1,0 +1,14 @@
+
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title">Delete</h4>
+            </div>
+            <div class="modal-body"><p id="delete_message">Are you sure you want to permanently delete {{dataset_name}}?</p></div>
+            <div class="modal-footer">
+                <a href="{{base_url}}delete-dataset/{{dataset_name}}" class="btn btn-default btn-sm btn-danger" role="button">Delete</a>
+                <a id="data-uploader-button" class="btn btn-sm btn-default" href="{{base_url}}add-dataset">Cancel</a>
+            </div>
+        </div>
+    </div>
