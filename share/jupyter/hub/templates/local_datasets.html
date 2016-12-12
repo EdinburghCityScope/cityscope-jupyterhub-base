@@ -1,9 +1,9 @@
 {% if datasets %}
     <div class="clearfix">&nbsp;</div>
     <div class="panel panel-default">
-        <div class="panel-heading">Local Datasets - already uploaded</div>
+        <div class="panel-heading"><h3>local datasets - already uploaded</h3></div>
         <div class="panel-body">
-            <form id="dataset-form">
+
             <table id="github-repositories" class="table">
                 <thead>
                     <tr>
@@ -23,16 +23,26 @@
                             </a>
                         </td>
                         <td>{{dataset['last_modified']}}</td>
-                        <td><a href="{{dataset['file_link']}}data" class="btn btn-default" role="button">View/Edit</a></td>
-                        <td><input type="button" class="btn btn-primary" id="PublishDatasetButton" alt="Publish this as an OpenData repository on GitHub" value="Publish" /></td>
+                        <td><a href="{{dataset['file_link']}}data"
+                                class="btn btn-default"
+                                role="button"
+                                alt="View and Edit this dataset locally">
+                                View/Edit
+                            </a>
+                        </td>
+                        <td><a href="{{base_url}}publish-dataset/{{dataset['file_name']}}"
+                                class="btn btn-primary"
+                                role="button" id="PublishDatasetButton"
+                                alt="Publish this as an OpenData repository on GitHub">
+                                Publish
+                            </a>
+                        </td>
                     </tr>
                 {% endfor %}
                 <tbody>
             </table>
-            </form>
+
         </div>
     </div>
     <div class="modal fade" id="modalPanel" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true"></div>
-{% else %}
-<h4>No Datasets uploaded yet</h4>
 {% endif %}

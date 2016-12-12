@@ -1,0 +1,140 @@
+{% extends "page.html" %}
+
+{% block main %}
+
+<div class="container">
+
+
+    {% if messages %}
+    <div class="panel panel-default">
+            <div class="{{message_class}}" style="padding:5px;">
+                <p><strong>{% if successful %}Success{% else%}Error{% endif %}</strong></p>
+                <ul>
+                  {% for message in messages %}
+                      <li>{{message}}</li>
+                  {% endfor %}
+                </ul>
+            </div>
+    </div>
+    <div class="clearfix">&nbsp;</div>
+    {% endif %}
+<h2>Publish Dataset: {{dataset_name}}</h2>
+<p>If your data is complete and ready to be published as an Open Dataset on the <a href="https://github.com/EdinburghCityScope" target="_blank">EdinburghCityScope Github repository</a> (link opens in a new window) then please complete the details in the form below.<br/>
+    The first section is concerned with the dataset as a whole, the second section is looking for information about the inidividual data files contained in the dataset.</br>
+    Be aware that publishing your dataset as an opendata repository has a legal implication so please check <a href="#guidance">the brief guidance notes below</a></<br/>
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <div class="panel panel-default">
+            <div class="panel-heading">Overall information about dataset: <strong>{{dataset_name}}</strong> </div>
+            <div class="panel-body">
+
+            <form action="{{base_url}}publish-dataset" method="post">
+                <div class="form-group">
+    			    <label class="control-label" for="ds_title">Title</label>
+    			    <input type="text" class="form-control" name="ds_title" id="ds_title"/>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="ds_description">Description</label>
+                    <textarea name="ds_description" class="form-control" id="ds_description" placeholder="Please decribe your dataset"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="ds_publisher">Publisher</label>
+    			    <input type="text" class="form-control" name="ds_publisher" id="ds_publisher"/>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="email">Email address</label>
+    			    <input type="text" class="form-control" name="email" id=""/>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="keywords">Keywords</label>
+    			    <input type="text" class="form-control" name="keywords" id=""/>
+                    <span class="help-block"></span>
+                </div>
+
+
+            </div><!-- close panel body -->
+            </div><!-- close panel -->
+            <!-- DATA FILES -->
+            <h3>Tell us about your data files:</h3>
+            {% for file in datafiles %}
+            <div class="panel panel-default">
+                <div class="panel-heading">Tell us about the file <strong>{{file['file_name']}}</strong></div>
+                <div class="panel-body">
+                    <div class="form-group">
+                      <label class="control-label" for="title">Title</label>
+                      <input type="text" class="form-control" name="title" id="title"/>
+                    </div>
+                    <div class="form-group">
+                      <label class="control-label" for="description">Description</label>
+                      <textarea name="description" class="form-control" id="description" placeholder="Please decribe what data is contained in this file."></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label class="control-label" for="license">License</label>
+                      <input type="text" class="form-control" name="license" id="license" placeholder="eg: Open Data Commons Public Domain Dedication and License (PDDL) "/>
+                      <span class="help-block">See <a href="http://opendatacommons.org/licenses/" target="_blank">Open Data License types</a> or <a href="https://data.gov.uk/terms-and-conditions" target="_blank">Open Government Licence</a> for help (each link opens in a new window)</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+
+<!-- http://www.openstreetmap.org/relation/1920901#map=11/55.9196/-3.2262 -->
+
+                    <span id="errorBlock" class="help-block">
+                        {% if error_message %}
+                            <ul>
+                              {% for errMsg in error_message %}
+                                  <li>{{errMsg}}</li>
+                              {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </span>
+
+
+            <a href="{{base_url}}home" class="btn btn-default" role="button">Cancel</a>
+            <input type="submit" class="btn btn-primary" id="PublishDataButton" value="Publish" />
+        </form>
+
+</div><!-- close panel body -->
+</div><!-- close panel -->
+
+<div class="clearfix">&nbsp;</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading"><h3 id="guidance" name="guidance">Some brief guidance on open data</h3></div>
+    <div class="panel-body">
+        <h4>Open Data should be...</h4>
+        <ul>
+            <li>data should be provided without limitations based on user identity or intent</li>
+            <li>free of restriction on use or redistribution in its licensing conditions</li>
+            <li>should be anonymised so that no individual can be identified</li>
+        </ul>
+        <h4>Open Data should NOT ...</h4>
+        <ul>
+            <li>contain copyright, copyright pending, or be derived from copyright protected material</li>
+            <li>contain patented, patent pending, or be derived from patent protected material</li>
+            <li>contain data that could put people or organisations at risk</li>
+            <li>contain data that would deliberately cause public offence</li>
+        </ul>
+        <h5>Further reading:</h5>
+        <p>All the links below open in a new window</p>
+        <ul>
+            <li><a href="https://en.wikipedia.org/wiki/Open_data" target="_blank">Wikipedia - Open Data</a></li>
+            <li><a href="https://www.gov.uk/service-manual/technology/open-data.html" target="_blank"><abbr title="United Kingdom">UK</abbr> Government Open Data Policy</a></li>
+            <li><a href="http://opendefinition.org/" target="_blank">The Open Definition of data and content</a></li>
+            <li><a href="http://opendefinition.org/licenses/" target="_blank">Open Data Licenses</a></li>
+        </ul>
+
+    </div>
+</div>
+
+
+</div><!--- close container -->
+
+{% endblock %}
+{% block script %}
+<script type="text/javascript">
+require(["dataupload"]);
+</script>
+{% endblock %}

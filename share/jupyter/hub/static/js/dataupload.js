@@ -27,9 +27,8 @@ require(["jquery","bootstrap"], function ($) {
 	});
 
 	$(".modalPopUp").on("click", function(e){
-        //e.preventDefault();
-	        $("#modalPanel").modal().load(this.href);
-		    return false;
+        $("#modalPanel").modal().load(this.href);
+		return false;
     });
 
 

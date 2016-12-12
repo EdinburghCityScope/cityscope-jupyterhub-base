@@ -160,49 +160,34 @@ class DataImportHandler(BaseHandler):
         return saved_file_path
 
 
-class HelloHandler(BaseHandler):
+class PublishDatasetHandler(BaseHandler):
+    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', slug=''):
+        self.messages = messages
+        self.message_class = message_class
+        self.error_message = error_message
+        self.form_class = form_class
+        self.slug = slug
 
-    def get(self):
-        msg = []
-        err_msg = []
-        original_name = '_Antonín_Dvořák_QA-(*)_(^!~#\'-"?=9  bcà@HéÉç_-Компьютер'
-        originalFile = original_name + '.csv'
-        #filename = re.sub('[^0-9a-zA-Z+_. ]+', '_', original_name)
-        filename = format_string(original_name)
-        cname = filename + '.csv'
-        msg.append("<p>Renamed: <br/>{1} to: <br/> {0}</p>".format(cname,originalFile))
+    ###############################
+    #######  main  methods  #######
+    ###############################
+    @web.authenticated
+    def get(self, slug):
+        self.initialize(slug=slug)
+        self.render_page()
 
-        if len(msg):
-            self.write("Messages:")
-            for message in msg:
-                self.write("{0}<br/>".format(message))
-        if len(err_msg):
-            self.write("Errors:")
-            for e in err_msg:
-                self.write("{0}<br/>".format(e))
 
-        dataset_dir = get_uploads_dir()
-        self.write("<p>Current files in: {0}<br/>".format(dataset_dir))
-
-        file_list = os.listdir(dataset_dir)
-        self.write("<ol>")
-        for fname in file_list:
-            local_file = dataset_dir + fname
-            modified    = os.path.getmtime(local_file)
-            self.write("<li>{0} ({1})</li>".format(fname, time.ctime(modified)))
-        self.write("</ol>")
-
-        self.write("<p>datasets dir = {0}</p>".format(dataset_dir))
-        self.write("<p>datasets dir = {0}</p>".format(self.get_current_user().name))
-
-        self.write("<ol>")
-        for dirname in file_list:
-            fullpath = get_uploads_dir() + dirname
-            if os.path.isdir(fullpath):
-                self.write("<li>{0}</li>".format(dirname))
-        self.write("</ol>")
-
-        self.write("<p>Parent directory name is: {}</p>".format(getpass.getuser()))
+    def render_page(self):
+        html = self.render_template('publish_dataset.html',
+        user = get_user_uun(),
+        messages = self.messages,
+        error_message = self.error_message,
+        message_class = self.message_class,
+        form_class = self.form_class,
+        dataset_name = self.slug,
+        datafiles = list_data_files(self.slug)
+        )
+        self.finish(html)
 
 
 class ConfirmDeleteDatasetHandler(BaseHandler):
@@ -252,28 +237,10 @@ class DeleteDatasetHandler(BaseHandler):
         self.finish(html)
 
 
-class ListHandler(BaseHandler):
-    """View of uploaded csv files"""
-    @web.authenticated
-    def get(self):
-        self.messages = []
-        self.message_class = ''
-        self.error_message = []
-        self.form_class = ''
-        self.render_page()
-
-
-    def render_page(self):
-        html = self.render_template('list_datasets.html',
-        messages = self.messages,
-        message_class = self.message_class,
-        datasets = list_datasets(),
-        )
-        self.finish(html)
-
 def get_user_tree():
     # /user/{{user.name}}/tree/datasets/{{fname}}
     return '/user/' + get_user_uun() + '/tree/datasets/'
+
 
 def get_user_uun():
     return getpass.getuser()
@@ -292,6 +259,18 @@ def list_datasets():
             datasets.append({'file_name':dir_name, 'last_modified':time.ctime(modified), 'file_link':user_tree})
     return datasets
 
+
+def list_data_files(dataset_name):
+    dataset_files_dir = get_dataset_dir(dataset_name) + 'data/'
+    dataset_files = [f for f in os.listdir(dataset_files_dir) if os.path.isfile(os.path.join(dataset_files_dir, f))]
+
+    datafiles = []
+    for data_file in dataset_files:
+        filename, file_extension = os.path.splitext(data_file)
+        fullpath = dataset_files_dir + data_file
+        modified = os.path.getmtime(fullpath)
+        datafiles.append({'file_name':data_file, 'filetype':file_extension.lower(), 'last_modified':time.ctime(modified)})
+    return datafiles
 
 def format_string(string_arg):
     return slugify(string_arg)
@@ -335,9 +314,56 @@ def get_dataset_dir(dataset_name):
 
     return dataset_dir
 
+
+class HelloHandler(BaseHandler):
+
+    def get(self):
+        msg = []
+        err_msg = []
+        original_name = '_Antonín_Dvořák_QA-(*)_(^!~#\'-"?=9  bcà@HéÉç_-Компьютер'
+        originalFile = original_name + '.csv'
+        #filename = re.sub('[^0-9a-zA-Z+_. ]+', '_', original_name)
+        filename = format_string(original_name)
+        cname = filename + '.csv'
+        msg.append("<p>Renamed: <br/>{1} to: <br/> {0}</p>".format(cname,originalFile))
+
+        if len(msg):
+            self.write("Messages:")
+            for message in msg:
+                self.write("{0}<br/>".format(message))
+        if len(err_msg):
+            self.write("Errors:")
+            for e in err_msg:
+                self.write("{0}<br/>".format(e))
+
+        dataset_dir = get_uploads_dir()
+        self.write("<p>Current files in: {0}<br/>".format(dataset_dir))
+
+        file_list = os.listdir(dataset_dir)
+        self.write("<ol>")
+        for fname in file_list:
+            local_file = dataset_dir + fname
+            modified    = os.path.getmtime(local_file)
+            self.write("<li>{0} ({1})</li>".format(fname, time.ctime(modified)))
+        self.write("</ol>")
+
+        self.write("<p>datasets dir = {0}</p>".format(dataset_dir))
+        self.write("<p>datasets dir = {0}</p>".format(self.get_current_user().name))
+
+        self.write("<ol>")
+        for dirname in file_list:
+            fullpath = get_uploads_dir() + dirname
+            if os.path.isdir(fullpath):
+                self.write("<li>{0}</li>".format(dirname))
+        self.write("</ol>")
+
+        self.write("<p>Parent directory name is: {}</p>".format(getpass.getuser()))
+
+
 default_handlers = [
     (r'/hello', HelloHandler),
     (r'/add-dataset',DataImportHandler),
     (r"/delete-dataset/([^/]+)", DeleteDatasetHandler),
     (r"/confirm-delete/([^/]+)", ConfirmDeleteDatasetHandler),
+    (r"/publish-dataset/([^/]+)", PublishDatasetHandler),
 ]
