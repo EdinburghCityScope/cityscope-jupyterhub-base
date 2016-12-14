@@ -1,4 +1,4 @@
-# Writing a custom Spawner
+# Spawners
 
 A [Spawner][] starts each single-user notebook server.
 The Spawner represents an abstract interface to a process,
@@ -8,21 +8,25 @@ and a custom Spawner needs to be able to take three actions:
 - poll whether the process is still running
 - stop the process
 
+
 ## Examples
-Custom Spawners for JupyterHub can be found on the [JupyterHub wiki](https://github.com/jupyter/jupyterhub/wiki/Spawners). Some examples include:
-- [DockerSpawner](https://github.com/jupyter/dockerspawner) for spawning user servers in Docker containers
-  * dockerspawner.DockerSpawner for spawning identical Docker containers for
+Custom Spawners for JupyterHub can be found on the [JupyterHub wiki](https://github.com/jupyterhub/jupyterhub/wiki/Spawners).
+Some examples include:
+
+- [DockerSpawner](https://github.com/jupyterhub/dockerspawner) for spawning user servers in Docker containers
+  * `dockerspawner.DockerSpawner` for spawning identical Docker containers for
     each users
-  * dockerspawner.SystemUserSpawner for spawning Docker containers with an
+  * `dockerspawner.SystemUserSpawner` for spawning Docker containers with an
     environment and home directory for each users
-- [SudoSpawner](https://github.com/jupyter/sudospawner) enables JupyterHub to
+  * both `DockerSpawner` and `SystemUserSpawner` also work with Docker Swarm for
+    launching containers on remote machines
+- [SudoSpawner](https://github.com/jupyterhub/sudospawner) enables JupyterHub to
   run without being root, by spawning an intermediate process via `sudo`
-- [BatchSpawner](https://github.com/mbmilligan/batchspawner) for spawning remote
+- [BatchSpawner](https://github.com/jupyterhub/batchspawner) for spawning remote
   servers using batch systems
 - [RemoteSpawner](https://github.com/zonca/remotespawner) to spawn notebooks
   and a remote server and tunnel the port via SSH
-- [SwarmSpawner](https://github.com/compmodels/jupyterhub/blob/master/swarmspawner.py)
-  for spawning containers using Docker Swarm
+
 
 ## Spawner control methods
 
@@ -61,10 +65,10 @@ and an integer exit status, otherwise.
 For the local process case, `Spawner.poll` uses `os.kill(PID, 0)`
 to check if the local process is still running.
 
-
 ### Spawner.stop
 
 `Spawner.stop` should stop the process. It must be a tornado coroutine, which should return when the process has finished exiting.
+
 
 ## Spawner state
 
@@ -97,6 +101,7 @@ def clear_state(self):
     self.pid = 0
 ```
 
+
 ## Spawner options form
 
 (new in 0.4)
@@ -113,8 +118,7 @@ If the `Spawner.options_form` is defined, when a user tries to start their serve
 
 If `Spawner.options_form` is undefined, the user's server is spawned directly, and no spawn page is rendered.
 
-See [this example](https://github.com/jupyter/jupyterhub/blob/master/examples/spawn-form/jupyterhub_config.py) for a form that allows custom CLI args for the local spawner.
-
+See [this example](https://github.com/jupyterhub/jupyterhub/blob/master/examples/spawn-form/jupyterhub_config.py) for a form that allows custom CLI args for the local spawner.
 
 ### `Spawner.options_from_form`
 
@@ -153,8 +157,58 @@ which would return:
 }
 ```
 
-When `Spawner.spawn` is called, this dictionary is accessible as `self.user_options`.
+When `Spawner.start` is called, this dictionary is accessible as `self.user_options`.
 
 
+[Spawner]: https://github.com/jupyterhub/jupyterhub/blob/master/jupyterhub/spawner.py
 
-[Spawner]: https://github.com/jupyter/jupyterhub/blob/master/jupyterhub/spawner.py
+## Writing a custom spawner
+
+If you are interested in building a custom spawner, you can read [this tutorial](http://jupyterhub-tutorial.readthedocs.io/en/latest/spawners.html).
+
+## Spawners, resource limits, and guarantees (Optional)
+
+Some spawners of the single-user notebook servers allow setting limits or
+guarantees on resources, such as CPU and memory. To provide a consistent
+experience for sysadmins and users, we provide a standard way to set and
+discover these resource limits and guarantees, such as for memory and CPU. For
+the limits and guarantees to be useful, the spawner must implement support for
+them.
+
+### Memory Limits & Guarantees
+
+`c.Spawner.mem_limit`: A **limit** specifies the *maximum amount of memory*
+that may be allocated, though there is no promise that the maximum amount will
+be available. In supported spawners, you can set `c.Spawner.mem_limit` to
+limit the total amount of memory that a single-user notebook server can
+allocate. Attempting to use more memory than this limit will cause errors. The
+single-user notebook server can discover its own memory limit by looking at
+the environment variable `MEM_LIMIT`, which is specified in absolute bytes.
+
+`c.Spawner.mem_guarantee`: Sometimes, a **guarantee** of a *minumum amount of
+memory* is desirable. In this case, you can set `c.Spawner.mem_guarantee` to
+to provide a guarantee that at minimum this much memory will always be
+available for the single-user notebook server to use. The environment variable
+`MEM_GUARANTEE` will also be set in the single-user notebook server.
+
+The spawner's underlying system or cluster is responsible for enforcing these
+limits and providing these guarantees. If these values are set to `None`, no
+limits or guarantees are provided, and no environment values are set.
+
+### CPU Limits & Guarantees
+
+`c.Spawner.cpu_limit`: In supported spawners, you can set
+`c.Spawner.cpu_limit` to limit the total number of cpu-cores that a
+single-user notebook server can use. These can be fractional - `0.5` means 50%
+of one CPU core, `4.0` is 4 cpu-cores, etc. This value is also set in the
+single-user notebook server's environment variable `CPU_LIMIT`. The limit does
+not claim that you will be able to use all the CPU up to your limit as other
+higher priority applications might be taking up CPU.
+
+`c.Spawner.cpu_guarantee`: You can set `c.Spawner.cpu_guarantee` to provide a
+guarantee for CPU usage. The environment variable `CPU_GUARANTEE` will be set
+in the single-user notebook server when a guarantee is being provided.
+
+The spawner's underlying system or cluster is responsible for enforcing these
+limits and providing these guarantees. If these values are set to `None`, no
+limits or guarantees are provided, and no environment values are set.

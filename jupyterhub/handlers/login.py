@@ -3,6 +3,8 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+from urllib.parse import urlparse
+
 from tornado.escape import url_escape
 from tornado import gen
 
@@ -15,10 +17,11 @@ class LogoutHandler(BaseHandler):
         user = self.get_current_user()
         if user:
             self.log.info("User logged out: %s", user.name)
-        self.clear_login_cookie()
-        for name in user.other_user_cookies:
-            self.clear_login_cookie(name)
-        user.other_user_cookies = set([])
+            self.clear_login_cookie()
+            for name in user.other_user_cookies:
+                self.clear_login_cookie(name)
+            user.other_user_cookies = set([])
+            self.statsd.incr('logout')
         self.redirect(self.hub.server.base_url, permanent=False)
 
 
@@ -35,15 +38,19 @@ class LoginHandler(BaseHandler):
         )
 
     def get(self):
+        self.statsd.incr('login.request')
         next_url = self.get_argument('next', '')
-        if not next_url.startswith('/'):
-            # disallow non-absolute next URLs (e.g. full URLs)
+        if (next_url + '/').startswith('%s://%s/' % (self.request.protocol, self.request.host)):
+            # treat absolute URLs for our host as absolute paths:
+            next_url = urlparse(next_url).path
+        elif not next_url.startswith('/'):
+            # disallow non-absolute next URLs (e.g. full URLs to other hosts)
             next_url = ''
         user = self.get_current_user()
         if user:
             if not next_url:
                 if user.running:
-                    next_url = user.server.base_url
+                    next_url = user.url
                 else:
                     next_url = self.hub.server.base_url
             # set new login cookie
@@ -61,8 +68,13 @@ class LoginHandler(BaseHandler):
         for arg in self.request.arguments:
             data[arg] = self.get_argument(arg)
 
+        auth_timer = self.statsd.timer('login.authenticate').start()
         username = yield self.authenticate(data)
+        auth_timer.stop(send=False)
+
         if username:
+            self.statsd.incr('login.success')
+            self.statsd.timing('login.authenticate.success', auth_timer.ms)
             user = self.user_from_username(username)
             already_running = False
             if user.spawner:
@@ -78,7 +90,9 @@ class LoginHandler(BaseHandler):
             self.redirect(next_url)
             self.log.info("User logged in: %s", username)
         else:
-            self.log.debug("Failed login for %s", username)
+            self.statsd.incr('login.failure')
+            self.statsd.timing('login.authenticate.failure', auth_timer.ms)
+            self.log.debug("Failed login for %s", data.get('username', 'unknown user'))
             html = self._render(
                 login_error='Invalid username or password',
                 username=username,

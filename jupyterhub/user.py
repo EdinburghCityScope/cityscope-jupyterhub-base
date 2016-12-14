@@ -12,7 +12,7 @@ from sqlalchemy import inspect
 from .utils import url_path_join
 
 from . import orm
-from traitlets import HasTraits, Any, Dict
+from traitlets import HasTraits, Any, Dict, observe, default
 from .spawner import LocalProcessSpawner
 from .data_api_spawner import LocalLoopbackProcessSpawner,DockerProcessSpawner
 from .mysql_spawner import MySQLProcessSpawner
@@ -43,7 +43,7 @@ class UserDict(dict):
         elif isinstance(key, str):
             orm_user = self.db.query(orm.User).filter(orm.User.name==key).first()
             if orm_user is None:
-                raise KeyError("No such user: %s" % name)
+                raise KeyError("No such user: %s" % key)
             else:
                 key = orm_user
         if isinstance(key, orm.User):
@@ -76,23 +76,25 @@ class UserDict(dict):
 
 
 class User(HasTraits):
-
+    
+    @default('log')
     def _log_default(self):
         return app_log
 
     settings = Dict()
 
     db = Any(allow_none=True)
+    @default('db')
     def _db_default(self):
         if self.orm_user:
             return inspect(self.orm_user).session
-
-    def _db_changed(self, name, old, new):
+    @observe('db')
+    def _db_changed(self, change):
         """Changing db session reacquires ORM User object"""
         # db session changed, re-get orm User
         if self.orm_user:
             id = self.orm_user.id
-            self.orm_user = new.query(orm.User).filter(orm.User.id==id).first()
+            self.orm_user = change['new'].query(orm.User).filter(orm.User.id==id).first()
         self.spawner.db = self.db
 
     orm_user = None
@@ -102,7 +104,8 @@ class User(HasTraits):
     wordpress_spawner = None
     spawn_pending = False
     stop_pending = False
-
+    waiting_for_response = False
+    
     @property
     def authenticator(self):
         return self.settings.get('authenticator', None)
@@ -195,10 +198,10 @@ class User(HasTraits):
     @property
     def proxy_path(self):
         if self.settings.get('subdomain_host'):
-            return url_path_join('/' + self.domain, self.server.base_url)
+            return url_path_join('/' + self.domain, self.base_url)
         else:
-            return self.server.base_url
-
+            return self.base_url
+    
     @property
     def domain(self):
         """Get the domain for my server."""
@@ -207,7 +210,7 @@ class User(HasTraits):
 
     @property
     def host(self):
-        """Get the *host* for my server (domain[:port])"""
+        """Get the *host* for my server (proto://domain[:port])"""
         # FIXME: escaped_name probably isn't escaped enough in general for a domain fragment
         parsed = urlparse(self.settings['subdomain_host'])
         h = '%s://%s.%s' % (parsed.scheme, self.escaped_name, parsed.netloc)
@@ -222,11 +225,11 @@ class User(HasTraits):
         if self.settings.get('subdomain_host'):
             return '{host}{path}'.format(
                 host=self.host,
-                path=self.server.base_url,
+                path=self.base_url,
             )
         else:
-            return self.server.base_url
-
+            return self.base_url
+    
     @gen.coroutine
     def spawn(self, options=None):
         """Start the user's spawner"""
@@ -259,10 +262,17 @@ class User(HasTraits):
             f = spawner.start()
             # commit any changes in spawner.start (always commit db changes before yield)
             db.commit()
-            yield gen.with_timeout(timedelta(seconds=spawner.start_timeout), f)
+            ip_port = yield gen.with_timeout(timedelta(seconds=spawner.start_timeout), f)
+            if ip_port:
+                # get ip, port info from return value of start()
+                self.server.ip, self.server.port = ip_port
+            else:
+                # prior to 0.7, spawners had to store this info in user.server themselves.
+                # Handle < 0.7 behavior with a warning, assuming info was stored in db by the Spawner.
+                self.log.warning("DEPRECATION: Spawner.start should return (ip, port) in JupyterHub >= 0.7")
         except Exception as e:
             if isinstance(e, gen.TimeoutError):
-                self.log.warn("{user}'s server failed to start in {s} seconds, giving up".format(
+                self.log.warning("{user}'s server failed to start in {s} seconds, giving up".format(
                     user=self.name, s=spawner.start_timeout,
                 ))
                 e.reason = 'timeout'
@@ -285,12 +295,12 @@ class User(HasTraits):
         self.state = spawner.get_state()
         self.last_activity = datetime.utcnow()
         db.commit()
-        self.spawn_pending = False
+        self.waiting_for_response = True
         try:
             yield self.server.wait_up(http=True, timeout=spawner.http_timeout)
         except Exception as e:
             if isinstance(e, TimeoutError):
-                self.log.warn(
+                self.log.warning(
                     "{user}'s server never showed up at {url} "
                     "after {http_timeout} seconds. Giving up".format(
                         user=self.name,
@@ -312,6 +322,9 @@ class User(HasTraits):
                 ), exc_info=True)
             # raise original TimeoutError
             raise e
+        finally:
+            self.waiting_for_response = False
+            self.spawn_pending = False
         return self
 
     @gen.coroutine
@@ -325,12 +338,20 @@ class User(HasTraits):
         self.spawner.stop_polling()
         self.stop_pending = True
         try:
+            api_token = self.spawner.api_token
             status = yield spawner.poll()
             if status is None:
                 yield self.spawner.stop()
             spawner.clear_state()
             self.state = spawner.get_state()
             self.last_activity = datetime.utcnow()
+            # cleanup server entry, API token from defunct server
+            if self.server:
+                # cleanup server entry from db
+                self.db.delete(self.server)
+            orm_token = orm.APIToken.find(self.db, api_token)
+            if orm_token:
+                self.db.delete(orm_token)
             self.server = None
             self.db.commit()
         finally:
