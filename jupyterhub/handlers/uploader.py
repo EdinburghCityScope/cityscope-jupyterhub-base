@@ -4,7 +4,7 @@ from .. import orm
 from ..utils import admin_only, url_path_join
 from .base import BaseHandler
 from .login import LoginHandler
-import os, re, unicodedata, csv, sys, time, getpass, shutil
+import os, re, unicodedata, csv, sys, time, datetime, getpass, shutil, json
 from slugify import slugify
 
 __UPLOADS__ = os.path.expanduser('~') + "/datasets/"
@@ -176,6 +176,11 @@ class PublishDatasetHandler(BaseHandler):
         self.initialize(slug=slug)
         self.render_page()
 
+    @gen.coroutine
+    def post(self):
+        print(form)
+        self.initialize(slug=slug)
+        self.render_page()
 
     def render_page(self):
         html = self.render_template('publish_dataset.html',
@@ -261,6 +266,9 @@ def list_datasets():
 
 
 def list_data_files(dataset_name):
+    '''lists uploaded file details from the
+    /home/{user}/datasets/{dataset_name}/data/ directory.
+    '''
     dataset_files_dir = get_dataset_dir(dataset_name) + 'data/'
     dataset_files = [f for f in os.listdir(dataset_files_dir) if os.path.isfile(os.path.join(dataset_files_dir, f))]
 
@@ -269,8 +277,27 @@ def list_data_files(dataset_name):
         filename, file_extension = os.path.splitext(data_file)
         fullpath = dataset_files_dir + data_file
         modified = os.path.getmtime(fullpath)
-        datafiles.append({'file_name':data_file, 'filetype':file_extension.lower(), 'last_modified':time.ctime(modified)})
+        datafiles.append({
+            'file_name':data_file,
+            'file_id':filename.lower() + '_' + file_extension.lower(),
+            'filetype':file_extension.lower(),
+            'last_modified':time.ctime(modified),
+        })
     return datafiles
+
+
+def get_data_file_form_inputs(dataset_name):
+    '''form inputs need to be generated dynamically as we don't know
+    which data files exist in each dataset.
+    It would be nice to have these generated so we can loop through them.
+    each file should have a title, description and license.
+    '''
+    form_inputs = []
+    if not dataset_name:
+        return form_inputs #error should be captured by calling page
+    else:
+        datafiles = list_data_files(dataset_name)
+
 
 def format_string(string_arg):
     return slugify(string_arg)
@@ -295,7 +322,6 @@ def get_uploads_dir():
 
 
 def get_dataset_dir(dataset_name):
-
     # does the dataset_name dir exist?
     dataset_dir = get_uploads_dir() + dataset_name + '/'
     if not os.path.isdir(dataset_dir):
@@ -314,9 +340,65 @@ def get_dataset_dir(dataset_name):
 
     return dataset_dir
 
+def json_default(object):
+    return object.__dict__
+
+def json_date_today():
+    return json.dumps(datetime.datetime.now().strftime('%Y-%m-%d'))
+
+def get_dcat_distribution_object(title='', description='', mediaType='', downloadURL='', license='',):
+    ''' description of each /data file in a dataset'''
+    return {
+            'title': title,
+            'description' : description,
+            'mediaType' : mediaType,
+            'downloadURL' : downloadURL,
+            'license' : license
+        }
+
+
+class DCAT:
+    '''This returns a python readable object of a dcat.json file within a dataset.
+       The dataset_dir argument is the path to the dataset.
+    '''
+    def __init__(   self,
+                    dataset_dir='',
+                    dataset_name='',
+                    id='https://github.com/EdinburghCityScope/',
+                    title='',
+                    description='',
+                    issued=json_date_today(),
+                    modified=json_date_today(),
+                    language=['en'],
+                    publisher = {'name':'','mbox':''}, # dictionary
+                    spatial='http://www.geonames.org/maps/google_55.95_-3.193.html',
+                    keyword=[],
+                    distribution=[get_dcat_distribution_object()], # list of dictionary objects
+                    ):
+        self.dataset_dir = dataset_dir
+        self.dataset_name = dataset_name
+        self.id = id
+        self.title = title
+        self.description = description
+        self.issued = issued
+        self.modified = modified
+        self.language = language
+        self.publisher = publisher
+        self.spatial = spatial
+        self.keyword = keyword
+        self.distribution = distribution
+        print(json_default(self))
+        #return json_default(self)
+
+
+        if dataset_dir != '':
+            dirs = dataset_dir.split("/")
+            self.dataset_name = dirs[-2]
+            print('dataset_name = {}'.format(self.dataset_name))
+
+
 
 class HelloHandler(BaseHandler):
-
     def get(self):
         msg = []
         err_msg = []
@@ -348,7 +430,6 @@ class HelloHandler(BaseHandler):
         self.write("</ol>")
 
         self.write("<p>datasets dir = {0}</p>".format(dataset_dir))
-        self.write("<p>datasets dir = {0}</p>".format(self.get_current_user().name))
 
         self.write("<ol>")
         for dirname in file_list:
@@ -357,7 +438,12 @@ class HelloHandler(BaseHandler):
                 self.write("<li>{0}</li>".format(dirname))
         self.write("</ol>")
 
-        self.write("<p>Parent directory name is: {}</p>".format(getpass.getuser()))
+        self.write("<p>Parent directory name is: {0}</p>".format(getpass.getuser()))
+
+        dcat_dir = dataset_dir + 'test/'
+        dcat_data = DCAT(dcat_dir)
+        print(dcat_data)
+        self.write("<p>dCat file is: {}</p>".format(json_default(dcat_data)))
 
 
 default_handlers = [
