@@ -36,19 +36,19 @@
                 </div>
                 <div class="form-group">
                     <label class="control-label" for="description">Description</label>
-                    <textarea name="description" class="form-control" id="description" placeholder="Please decribe your dataset">{{}}"</textarea>
+                    <textarea name="description" class="form-control" id="description" placeholder="Please decribe your dataset">{{description}}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="control-label" for="publisher">Publisher</label>
-    			    <input type="text" class="form-control" name="publisher" id="publisher" value="{{}}"/>
+    			    <input type="text" class="form-control" name="publisher" id="publisher" value="{{publisher}}"/>
                 </div>
                 <div class="form-group">
                     <label class="control-label" for="email">Email address</label>
-    			    <input type="text" class="form-control" name="email" id="" value="{{}}"/>
+    			    <input type="text" class="form-control" name="email" id="" value="{{email}}"/>
                 </div>
                 <div class="form-group">
                     <label class="control-label" for="keywords">Keywords</label>
-    			    <input type="text" class="form-control" name="keywords" id="" value="{{}}"/>
+    			    <input type="text" class="form-control" name="keywords" id="" value="{{keywords}}"/>
                     <span class="help-block"></span>
                 </div>
 
@@ -63,16 +63,16 @@
                 <div class="panel-body">
                     <div class="form-group">
                       <label class="control-label" for="title">Title</label>
-                      <input type="text" class="form-control" name="{{file['file_id']}}_title" id="title" value="{{}}"/>
+                      <input type="text" class="form-control" name="{{file['file_id']}}_title" id="title" value=""/>
                     </div>
                     <div class="form-group">
                       <label class="control-label" for="description">Description</label>
                       <textarea name="description" class="form-control" id="description"
-                        placeholder="Please decribe what data is contained in this file.">{{}}</textarea>
+                        placeholder="Please decribe what data is contained in this file."></textarea>
                     </div>
                     <div class="form-group">
                       <label class="control-label" for="license">License</label>
-                      <input type="text" class="form-control" name="license" id="license" placeholder="eg: Open Data Commons Public Domain Dedication and License (PDDL)" value="{{}}"/>
+                      <input type="text" class="form-control" name="license" id="license" placeholder="eg: Open Data Commons Public Domain Dedication and License (PDDL)" value=""/>
                       <span class="help-block">See <a href="http://opendatacommons.org/licenses/" target="_blank">Open Data License types</a> or <a href="https://data.gov.uk/terms-and-conditions" target="_blank">Open Government Licence</a> for help (each link opens in a new window)</span>
                     </div>
                 </div>

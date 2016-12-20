@@ -4,7 +4,7 @@ from .. import orm
 from ..utils import admin_only, url_path_join
 from .base import BaseHandler
 from .login import LoginHandler
-import os, re, unicodedata, csv, sys, time, datetime, getpass, shutil, json
+import os, re, unicodedata, csv, sys, time, datetime, getpass, shutil, json, magic
 from slugify import slugify
 
 __UPLOADS__ = os.path.expanduser('~') + "/datasets/"
@@ -190,7 +190,7 @@ class PublishDatasetHandler(BaseHandler):
         message_class = self.message_class,
         form_class = self.form_class,
         dataset_name = self.slug,
-        datafiles = list_data_files(self.slug)
+        datafiles = list_data_files(get_dataset_dir(self.slug))
         )
         self.finish(html)
 
@@ -265,22 +265,26 @@ def list_datasets():
     return datasets
 
 
-def list_data_files(dataset_name):
+def list_data_files(dataset_dir):
     '''lists uploaded file details from the
     /home/{user}/datasets/{dataset_name}/data/ directory.
     '''
-    dataset_files_dir = get_dataset_dir(dataset_name) + 'data/'
+    mime = magic.Magic(mime=True)
+    dataset_files_dir = dataset_dir + 'data/'
     dataset_files = [f for f in os.listdir(dataset_files_dir) if os.path.isfile(os.path.join(dataset_files_dir, f))]
 
     datafiles = []
     for data_file in dataset_files:
         filename, file_extension = os.path.splitext(data_file)
+        print('filename:{0}, file_extension: {1}'.format(filename, file_extension))
         fullpath = dataset_files_dir + data_file
+        mimetype = mime.from_file(fullpath)
         modified = os.path.getmtime(fullpath)
         datafiles.append({
             'file_name':data_file,
             'file_id':filename.lower() + '_' + file_extension.lower(),
             'filetype':file_extension.lower(),
+            'mimetype':mimetype,
             'last_modified':time.ctime(modified),
         })
     return datafiles
@@ -296,7 +300,7 @@ def get_data_file_form_inputs(dataset_name):
     if not dataset_name:
         return form_inputs #error should be captured by calling page
     else:
-        datafiles = list_data_files(dataset_name)
+        datafiles = list_data_files(get_dataset_dir(dataset_name))
 
 
 def format_string(string_arg):
@@ -340,7 +344,7 @@ def get_dataset_dir(dataset_name):
 
     return dataset_dir
 
-def json_default(object):
+def python_to_json(object):
     return object.__dict__
 
 def json_date_today():
@@ -387,15 +391,43 @@ class DCAT:
         self.spatial = spatial
         self.keyword = keyword
         self.distribution = distribution
-        print(json_default(self))
-        #return json_default(self)
+
+        # self.variables
+        self.data_path = self.dataset_dir + 'data/'
+        self.dcat_file_path = self.dataset_dir + 'data.json'
+
+        print(python_to_json(self))
+        #return python_to_json(self)
 
 
         if dataset_dir != '':
             dirs = dataset_dir.split("/")
             self.dataset_name = dirs[-2]
-            print('dataset_name = {}'.format(self.dataset_name))
+            print('dataset_name = {0}'.format(self.dataset_name))
 
+        if os.path.isdir(self.data_path):
+            print('we have a valid dataset_dir: {0}'.format(self.data_path))
+
+    def get_dcat_file(self):
+        '''reads (or creates) a dcat.json file into a Python object based on a supplied file path'''
+        print('getting dcat file')
+        if os.path.isfile(self.dcat_file_path):
+            print(self.dcat_file_path)
+            with open(self.dcat_file_path) as data_file:
+                data = json.load(data_file)
+                data_file.close()
+            #read_dcat_file(self.dcat_file_path)
+        else:
+            data = python_to_json(self)
+            #do something
+        print(data)
+        return data
+
+    def read_dcat_file(self):
+        print('reading dcat file')
+
+    def write_dcat_file(self):
+        print('writing dcat file')
 
 
 class HelloHandler(BaseHandler):
@@ -440,10 +472,10 @@ class HelloHandler(BaseHandler):
 
         self.write("<p>Parent directory name is: {0}</p>".format(getpass.getuser()))
 
-        dcat_dir = dataset_dir + 'test/'
+        dcat_dir = dataset_dir + 'abc/'
         dcat_data = DCAT(dcat_dir)
         print(dcat_data)
-        self.write("<p>dCat file is: {}</p>".format(json_default(dcat_data)))
+        self.write("<p>dCat file is: {}</p>".format(dcat_data.get_dcat_file()))
 
 
 default_handlers = [
