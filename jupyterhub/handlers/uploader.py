@@ -10,6 +10,153 @@ from slugify import slugify
 __UPLOADS__ = os.path.expanduser('~') + "/datasets/"
 _MAXFILESIZE = 50 * 1024 * 1024 # 50mb
 
+######################################
+####### helper functions #############
+######################################
+def get_user_tree():
+    # /user/{{user.name}}/tree/datasets/{{fname}}
+    return '/user/' + get_user_uun() + '/tree/datasets/'
+
+def get_user_uun():
+    return getpass.getuser()
+
+def list_datasets():
+    dataset_dir = get_uploads_dir()
+    dir_names = os.listdir(dataset_dir)
+
+    datasets = []
+    for dir_name in dir_names:
+        fullpath = dataset_dir + dir_name
+        if os.path.isdir(fullpath):
+            modified    = os.path.getmtime(fullpath)
+            user_tree = get_user_tree() + dir_name + '/'
+            datasets.append({'file_name':dir_name, 'last_modified':time.ctime(modified), 'file_link':user_tree})
+    return datasets
+
+def list_data_files(dataset_dir):
+    '''lists uploaded file details from the
+    /home/{user}/datasets/{dataset_name}/data/ directory.
+    '''
+    dataset_files_dir = dataset_dir + 'data/'
+    dataset_files = [f for f in os.listdir(dataset_files_dir) if os.path.isfile(os.path.join(dataset_files_dir, f))]
+
+    datafiles = []
+    for data_file in dataset_files:
+        filename, file_extension = os.path.splitext(data_file)
+        file_extension = file_extension.lower()
+        fullpath = dataset_files_dir + data_file
+        modified = os.path.getmtime(fullpath)
+        mime_type = get_mime_type(file_extension=file_extension,fullpath=fullpath)
+        datafiles.append({
+            'file_name':data_file,
+            'file_id':filename.lower() + file_extension.lower().replace('.', '_'),
+            'filetype':file_extension.lower(),
+            'mimetype':mime_type,
+            'last_modified':time.ctime(modified),
+        })
+    return datafiles
+
+def get_mime_type(file_extension, fullpath):
+    mime_type = None
+    x = file_extension
+    if x == '.csv':
+        mime_type = 'text/csv'
+    elif x == '.json':
+        mime_type = 'application/json'
+    elif x == '.js':
+        mime_type = 'application/javascript'
+    elif x == '.geojson':
+        mime_type = 'application/vnd.geo+json'
+    elif x == '.txt' or x == '.text':
+        mime_type = 'text/plain'
+    elif x == '.pdf':
+        mime_type = 'application/pdf'
+    elif x == '.doc' or x == '.docx':
+        mime_type = 'application/msword'
+    elif x == '.rtf' or x == '.rt':
+        mime_type = 'application/rtf'
+    elif x == '.xml':
+        mime_type = 'text/xml'
+    elif x == '.htm' or x == '.html':
+        mime_type = 'text/html'
+    elif x == '.py':
+        mime_type = 'text/x-script.python'
+
+    if mime_type == None:
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_file(fullpath)
+
+    return mime_type
+
+def format_string(string_arg):
+    return slugify(string_arg)
+
+def get_uploads_dir():
+    # make sure the uploads directory exists
+    if not os.path.isdir(__UPLOADS__):
+        try:
+            os.makedirs(__UPLOADS__)
+        except Exception as e:
+            raise RuntimeError('Unable to create upload storage directory: {0}'.format(e))
+    return __UPLOADS__
+
+def get_dataset_dir(dataset_name):
+    '''gets the file path of a dataset by dataset name and user path'''
+    dataset_dir = get_uploads_dir() + dataset_name + '/'
+    if not os.path.isdir(dataset_dir):
+        try:
+            os.makedirs(dataset_dir)
+        except Exception as e:
+            raise RuntimeError('Unable to create dataset storage directory: {0}'.format(e))
+
+    # is there a the data directory under the dataset_dir folder?
+    data_dir = dataset_dir + 'data' + '/'
+    if not os.path.isdir(data_dir):
+        try:
+            os.makedirs(data_dir)
+        except Exception as e:
+            raise RuntimeError('Unable to create data storage directory: {0}'.format(e))
+
+    return dataset_dir
+
+def python_to_json(object):
+    return object.__dict__
+
+def json_date_today():
+    return json.dumps(datetime.datetime.now().strftime('%Y-%m-%d'))
+
+def read_json_file(fullpath):
+    d=''
+    if os.path.isfile(fullpath):
+        try:
+            with open(fullpath) as json_data:
+                d = json.load(json_data)
+                json_data.close()
+        except Exception as err:
+            d = ''
+    return d
+
+def get_dcat_distribution_object(title='', description='', mediaType='', downloadURL='', license='',):
+    ''' description of each /data file in a dataset
+        download url will be in the format:
+        https://github.com/EdinburghCityScope/{uun}/cec-litter-bins/raw/master/data/litter-bins.csv
+        which redirects to:
+        https://raw.githubusercontent.com/EdinburghCityScope/{uun}/cec-litter-bins/master/data/litter-bins.csv
+
+    '''
+    return {
+            'title': title,
+            'description' : description,
+            'mediaType' : mediaType,
+            'downloadURL' : downloadURL,
+            'license' : license
+        }
+
+
+######################################
+########### main classes #############
+######################################
+
 
 class DataImportHandler(BaseHandler):
     """Render the add-dataset form"""
@@ -167,6 +314,7 @@ class PublishDatasetHandler(BaseHandler):
         self.error_message = error_message
         self.form_class = form_class
         self.slug = slug
+        self.dcat_data = None
 
     ###############################
     #######  main  methods  #######
@@ -174,13 +322,73 @@ class PublishDatasetHandler(BaseHandler):
     @web.authenticated
     def get(self, slug):
         self.initialize(slug=slug)
+        dcat = DCAT(dataset_name = slug)
+        dcat_data = dcat.get_dcat_file()
+        print('dcat_data = '.format(dcat_data))
         self.render_page()
 
     @gen.coroutine
-    def post(self):
-        print(form)
+    def post(self, slug):
+        ''' # if the form has been posted:
+            # http://www.tornadoweb.org/en/stable/guide/structure.html?highlight=form%20input
+            # Request data in the formats used by HTML forms will be parsed
+            # for you and is made available in methods like
+            # get_query_argument and get_body_argument
+            # eg form.title will be: self.get_body_argument("title")
+        '''
+        self.initialize(slug=slug)
+        print("handling form post")
+        try:
+            csv_title = self.get_body_argument("abc_csv[title]", default=None, strip=True)
+        except Exception as err:
+            csv_title = err
+        print("abc_csv[title] was:{0}".format(csv_title))
         self.initialize(slug=slug)
         self.render_page()
+
+    def get_dcat_form(self):
+        ''' form inputs need to be generated dynamically as we don't know
+            which data files exist in each dataset.
+            It would be nice to have these generated so we can loop through them.
+            each file should have a title, description and license.
+                title='',
+                description='',
+                language=['en'],
+                publisher = {'name':'','mbox':''}, # dictionary
+                keyword=[],
+                distribution=[]
+        '''
+        distribution = []
+        datafiles = list_data_files(get_dataset_dir(self.slug))
+        for datafile in datafiles:
+            distribution_title = datafile['file_id'] + '[title]'
+            distribution_description = datafile['file_id'] + '[description]'
+            distribution_license = datafile['file_id'] + '[license]'
+            distribution.append(
+                {
+                'title':{'name':distribution_title, 'required':True, 'css_class':'','value':get_form_value(distribution_title)},
+                'description':{'name':distribution_description , 'required':True, 'css_class':'','value':get_form_value(distribution_description)},
+                'license':{'name':distribution_license , 'required':True, 'css_class':'','value': get_form_value()},
+                }
+            )
+        form_inputs = [{
+            'title':{'required':True, 'css_class':'','value':get_form_value('title')},
+            'description':{'required':True, 'css_class':'','value':get_form_value('description')},
+            'language':{'required':True, 'css_class':'','value':get_form_value('language')}, #https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+            'publisher':{'required':True, 'css_class':'','value':get_form_value('publisher')},
+            'email':{'required':True, 'css_class':'','value':get_form_value('email')},
+            'keywords':{'required':False, 'css_class':'','value':get_form_value('keywords')},
+             # distribution inputs should ALWAYS be linked to the physical file system not the data.json file.
+
+            }]
+
+    def get_form_value(input_name):
+        #set the default to be a form input.
+        the_value = self.get_body_argument(input_name, default=None, strip=True)
+        # else get the dcat_value
+        if the_value == None:
+            try:
+                the_value = '' #find the dcat_value!
 
     def render_page(self):
         html = self.render_template('publish_dataset.html',
@@ -241,126 +449,6 @@ class DeleteDatasetHandler(BaseHandler):
         )
         self.finish(html)
 
-
-def get_user_tree():
-    # /user/{{user.name}}/tree/datasets/{{fname}}
-    return '/user/' + get_user_uun() + '/tree/datasets/'
-
-
-def get_user_uun():
-    return getpass.getuser()
-
-
-def list_datasets():
-    dataset_dir = get_uploads_dir()
-    dir_names = os.listdir(dataset_dir)
-
-    datasets = []
-    for dir_name in dir_names:
-        fullpath = dataset_dir + dir_name
-        if os.path.isdir(fullpath):
-            modified    = os.path.getmtime(fullpath)
-            user_tree = get_user_tree() + dir_name + '/'
-            datasets.append({'file_name':dir_name, 'last_modified':time.ctime(modified), 'file_link':user_tree})
-    return datasets
-
-
-def list_data_files(dataset_dir):
-    '''lists uploaded file details from the
-    /home/{user}/datasets/{dataset_name}/data/ directory.
-    '''
-    mime = magic.Magic(mime=True)
-    dataset_files_dir = dataset_dir + 'data/'
-    dataset_files = [f for f in os.listdir(dataset_files_dir) if os.path.isfile(os.path.join(dataset_files_dir, f))]
-
-    datafiles = []
-    for data_file in dataset_files:
-        filename, file_extension = os.path.splitext(data_file)
-        print('filename:{0}, file_extension: {1}'.format(filename, file_extension))
-        fullpath = dataset_files_dir + data_file
-        mimetype = mime.from_file(fullpath)
-        modified = os.path.getmtime(fullpath)
-        datafiles.append({
-            'file_name':data_file,
-            'file_id':filename.lower() + '_' + file_extension.lower(),
-            'filetype':file_extension.lower(),
-            'mimetype':mimetype,
-            'last_modified':time.ctime(modified),
-        })
-    return datafiles
-
-
-def get_data_file_form_inputs(dataset_name):
-    '''form inputs need to be generated dynamically as we don't know
-    which data files exist in each dataset.
-    It would be nice to have these generated so we can loop through them.
-    each file should have a title, description and license.
-    '''
-    form_inputs = []
-    if not dataset_name:
-        return form_inputs #error should be captured by calling page
-    else:
-        datafiles = list_data_files(get_dataset_dir(dataset_name))
-
-
-def format_string(string_arg):
-    return slugify(string_arg)
-    # return a string that only has alphanumeric or hyphens
-    #string_arg = string_arg.replace(" ","-")
-    #string_arg = string_arg.replace("_","-")
-    #nkfd_form = unicodedata.normalize('NFKD', string_arg)
-    #new_string = u''.join([c for c in nkfd_form if not unicodedata.combining(c)])
-    #new_string = re.sub('[^a-zA-Z_0-9+_+-.]+', '', new_string.lower()).strip("-_")
-    #new_string = re.sub('-+','-',new_string)
-    #return  new_string
-
-
-def get_uploads_dir():
-    # make sure the uploads directory exists
-    if not os.path.isdir(__UPLOADS__):
-        try:
-            os.makedirs(__UPLOADS__)
-        except Exception as e:
-            raise RuntimeError('Unable to create upload storage directory: {0}'.format(e))
-    return __UPLOADS__
-
-
-def get_dataset_dir(dataset_name):
-    # does the dataset_name dir exist?
-    dataset_dir = get_uploads_dir() + dataset_name + '/'
-    if not os.path.isdir(dataset_dir):
-        try:
-            os.makedirs(dataset_dir)
-        except Exception as e:
-            raise RuntimeError('Unable to create dataset storage directory: {0}'.format(e))
-
-    # is there a the data directory under the dataset_dir folder?
-    data_dir = dataset_dir + 'data' + '/'
-    if not os.path.isdir(data_dir):
-        try:
-            os.makedirs(data_dir)
-        except Exception as e:
-            raise RuntimeError('Unable to create data storage directory: {0}'.format(e))
-
-    return dataset_dir
-
-def python_to_json(object):
-    return object.__dict__
-
-def json_date_today():
-    return json.dumps(datetime.datetime.now().strftime('%Y-%m-%d'))
-
-def get_dcat_distribution_object(title='', description='', mediaType='', downloadURL='', license='',):
-    ''' description of each /data file in a dataset'''
-    return {
-            'title': title,
-            'description' : description,
-            'mediaType' : mediaType,
-            'downloadURL' : downloadURL,
-            'license' : license
-        }
-
-
 class DCAT:
     '''This returns a python readable object of a dcat.json file within a dataset.
        The dataset_dir argument is the path to the dataset.
@@ -368,20 +456,20 @@ class DCAT:
     def __init__(   self,
                     dataset_dir='',
                     dataset_name='',
-                    id='https://github.com/EdinburghCityScope/',
+                    id='',
                     title='',
                     description='',
-                    issued=json_date_today(),
+                    issued='',
                     modified=json_date_today(),
                     language=['en'],
                     publisher = {'name':'','mbox':''}, # dictionary
                     spatial='http://www.geonames.org/maps/google_55.95_-3.193.html',
                     keyword=[],
-                    distribution=[get_dcat_distribution_object()], # list of dictionary objects
+                    distribution=[], # list of dictionary objects
                     ):
         self.dataset_dir = dataset_dir
         self.dataset_name = dataset_name
-        self.id = id
+        self.id = id #id='https://github.com/EdinburghCityScope/{uun}/{dataset_name}',
         self.title = title
         self.description = description
         self.issued = issued
@@ -392,35 +480,31 @@ class DCAT:
         self.keyword = keyword
         self.distribution = distribution
 
+        if self.dataset_dir == '' and self.dataset_name != '':
+            self.dataset_dir = get_dataset_dir(self.dataset_name)
+
+        if self.dataset_dir != '' and self.dataset_name == '':
+            dirs = self.dataset_dir.split("/")
+            self.dataset_name = dirs[-2] #this should give us the dataset_name from /home/{uun}/datasets/{dataset_name}/
+
         # self.variables
         self.data_path = self.dataset_dir + 'data/'
         self.dcat_file_path = self.dataset_dir + 'data.json'
 
-        print(python_to_json(self))
-        #return python_to_json(self)
-
-
-        if dataset_dir != '':
-            dirs = dataset_dir.split("/")
-            self.dataset_name = dirs[-2]
-            print('dataset_name = {0}'.format(self.dataset_name))
-
+        #print(python_to_json(self))
         if os.path.isdir(self.data_path):
             print('we have a valid dataset_dir: {0}'.format(self.data_path))
+
 
     def get_dcat_file(self):
         '''reads (or creates) a dcat.json file into a Python object based on a supplied file path'''
         print('getting dcat file')
         if os.path.isfile(self.dcat_file_path):
-            print(self.dcat_file_path)
-            with open(self.dcat_file_path) as data_file:
-                data = json.load(data_file)
-                data_file.close()
-            #read_dcat_file(self.dcat_file_path)
+            data = read_json_file(self.dcat_file_path)
+            print('Data read from {0} file: {1}'.format(self.dcat_file_path,data))
         else:
             data = python_to_json(self)
             #do something
-        print(data)
         return data
 
     def read_dcat_file(self):

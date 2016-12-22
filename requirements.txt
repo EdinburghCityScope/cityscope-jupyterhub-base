@@ -10,3 +10,4 @@ PyGithub
 git+https://github.com/cwaldbieser/jhub_remote_user_authenticator.git#egg=remote-user
 git+https://github.com/jupyterhub/dockerspawner.git#egg=dockerspawner
 slugify
+python-magic
