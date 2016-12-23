@@ -62,7 +62,7 @@
       {% if user.running %}
       <div class="btn-group pull-right">
           <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> <span class="caret"></span>
+              <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
           </button>
           <ul class="dropdown-menu">
             <li><a id="stop">Stop My Notebook</a></li>
@@ -82,11 +82,11 @@
       </div>
       <div class="panel-body">
 
-        <button id="create-loopback-button" class="btn btn-lg btn-primary">Create an API</button>
-        <a href="/loopback/" class="btn btn-lg btn-primary">Go to My API</a>
+        <button id="create-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
+        <a href="/loopback/" class="hidden btn btn-lg btn-primary">Go to My API</a>
         <div class="btn-group pull-right">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> <span class="caret"></span>
+                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
               <li><a id="stop-loopback-button" href="#">Stop my API</a></li>
@@ -101,11 +101,11 @@
         <h3 class="panel-title">My Tour Blog</h3>
       </div>
       <div class="panel-body">
-        <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary">Create a Tour Blog</button>
-        <a href="/wordpress/" class="btn btn-lg btn-primary">Go to My Tour Blog</a>
+        <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Tour Blog</button>
+        <a href="/wordpress/" class="hidden btn btn-lg btn-primary">Go to My Tour Blog</a>
         <div class="btn-group pull-right">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> <span class="caret"></span>
+                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
               <li><a id="stop-blog-button" href="#">Stop my blog</a></li>
@@ -116,6 +116,23 @@
       <div class="panel-footer">Create a virtual tour using your own tour blog</div>
     </div>
     <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Add a dataset<h3>
+      </div>
+      <div class="panel-body">
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add a dataset <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a id="stop-blog-button" href="#">Import my own dataset</a></li>
+              <li><a href="#">Choose from existing dataset</a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="panel-footer">Either add a dataset of your own, or choose from a list of existing Cityscope datasets</div>
+    </div>
+    <div class="panel panel-default hidden">
       <div class="panel-body">
         <h1>Dataset selection</h1>
         <p>Welcome to Edinburgh CityScope! Would you like to use some datasets with Jupyter?</p
