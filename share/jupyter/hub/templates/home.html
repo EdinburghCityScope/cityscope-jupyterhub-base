@@ -33,13 +33,16 @@
         </div>
     </div>
 </div>
+<div class="page-header">
+    <h1>Cityscope Workbench <small>Please choose an option below</small></h1>
+</div>
 
-  <div class="row">
-    <div class="text-center">
-      {% if user.running %}
-      <a id="stop" class="btn btn-lg btn-danger">Stop My Server</a>
-      {% endif %}
-      <a id="start" class="btn btn-lg btn-success"
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">My Notebook</h3>
+  </div>
+    <div class="panel-body">
+      <a id="start" class="btn btn-lg btn-primary"
       {% if user.running %}
         href="{{ user.url }}"
       {% else %}
@@ -47,31 +50,87 @@
       {% endif %}
       >
       {% if not user.running %}
-      Start
+      Start Notebook
       {% endif %}
-        My Server
+      {% if user.running %}
+        Go to My Notebook
+      {% endif %}
       </a>
       {% if user.admin %}
       <a id="admin" class="btn btn-lg btn-primary" href="{{base_url}}admin">Admin</a>
       {% endif %}
+      {% if user.running %}
+      <div class="btn-group pull-right">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+            <li><a id="stop">Stop My Notebook</a></li>
+          </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="panel-footer">
+      Use Notebooks to visualise and annotate data, and store information.
     </div>
   </div>
-  <div class="row">
-    <div class="text-center">
-      <h1>Dataset selection</h1>
-      <p>Welcome to Edinburgh CityScope! Would you like to use some datasets with Jupyter?</p
+
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">My API</h3>
+      </div>
+      <div class="panel-body">
+
+        <button id="create-loopback-button" class="btn btn-lg btn-primary">Create an API</button>
+        <a href="/loopback/" class="btn btn-lg btn-primary">Go to My API</a>
+        <div class="btn-group pull-right">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a id="stop-loopback-button" href="#">Stop my API</a></li>
+              <li><a href="#">Show my API password</a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="panel-footer">For developers, create an API so you can programmatically interact with and create new data</div>
     </div>
-    <div class="text-left">
-      <form id="repository-form">
-        <table id="github-repositories" class="table">
-          <thead>
-            <th>Repository name</th>
-            <th>Futher Details</th>
-            <th>Use data</th>
-          </thead>
-          <tbody></tbody>
-        </table>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">My Tour Blog</h3>
+      </div>
+      <div class="panel-body">
+        <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary">Create a Tour Blog</button>
+        <a href="/wordpress/" class="btn btn-lg btn-primary">Go to My Tour Blog</a>
+        <div class="btn-group pull-right">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a id="stop-blog-button" href="#">Stop my blog</a></li>
+              <li><a href="#">Show my Blog password</a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="panel-footer">Create a virtual tour using your own tour blog</div>
     </div>
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <h1>Dataset selection</h1>
+        <p>Welcome to Edinburgh CityScope! Would you like to use some datasets with Jupyter?</p
+      </div>
+      <div class="text-left">
+        <form id="repository-form">
+          <table id="github-repositories" class="table">
+            <thead>
+              <th>Repository name</th>
+              <th>Futher Details</th>
+              <th>Use data</th>
+            </thead>
+            <tbody></tbody>
+          </table>
+      </div>
     <div class="text-center">
       <button id="start-loopback-button" type="button" class="btn btn-lg btn-success">Start Loopback Server</button>
       <button id="stop-loopback-button" type="button" class="btn btn-lg btn-danger">Stop Loopback Server</button>
