@@ -59,7 +59,7 @@
             <h3>Tell us about your data files:</h3>
             {% for file in datafiles %}
             <div class="panel panel-default">
-                <div class="panel-heading">Tell us about the file <strong>{{file['file_name']}}, {{file['mimetype']}}</strong></div>
+                <div class="panel-heading">Tell us about the file <strong>{{file['file_name']}} ({{file['mimetype']}})</strong></div>
                 <div class="panel-body">
                     <div class="form-group">
                       <label class="control-label" for="title">Title</label>

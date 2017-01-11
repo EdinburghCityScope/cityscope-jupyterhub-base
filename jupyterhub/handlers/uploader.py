@@ -308,13 +308,18 @@ class DataImportHandler(BaseHandler):
 
 
 class PublishDatasetHandler(BaseHandler):
-    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', slug=''):
+    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', slug='', form_fields=None):
         self.messages = messages
         self.message_class = message_class
         self.error_message = error_message
         self.form_class = form_class
         self.slug = slug
-        self.dcat_data = None
+        self.form_fields = form_fields
+        if self.form_fields == None:
+            dcat = DCAT(dataset_name = self.slug)
+            self.dcat_data = dcat.get_dcat_file()
+            self.form_fields = self.get_dcat_form()
+
 
     ###############################
     #######  main  methods  #######
@@ -322,9 +327,6 @@ class PublishDatasetHandler(BaseHandler):
     @web.authenticated
     def get(self, slug):
         self.initialize(slug=slug)
-        dcat = DCAT(dataset_name = slug)
-        dcat_data = dcat.get_dcat_file()
-        print('dcat_data = '.format(dcat_data))
         self.render_page()
 
     @gen.coroutine
@@ -338,12 +340,6 @@ class PublishDatasetHandler(BaseHandler):
         '''
         self.initialize(slug=slug)
         print("handling form post")
-        try:
-            csv_title = self.get_body_argument("abc_csv[title]", default=None, strip=True)
-        except Exception as err:
-            csv_title = err
-        print("abc_csv[title] was:{0}".format(csv_title))
-        self.initialize(slug=slug)
         self.render_page()
 
     def get_dcat_form(self):
@@ -361,34 +357,76 @@ class PublishDatasetHandler(BaseHandler):
         distribution = []
         datafiles = list_data_files(get_dataset_dir(self.slug))
         for datafile in datafiles:
+            file_name = datafile['file_name']
             distribution_title = datafile['file_id'] + '[title]'
+            title_value = self.get_distribution_field_value(field_name='title',file_name=file_name,input_name=distribution_title)
             distribution_description = datafile['file_id'] + '[description]'
+            description_value = self.get_distribution_field_value(field_name='title',file_name=file_name,input_name=distribution_description)
             distribution_license = datafile['file_id'] + '[license]'
+            license_value = self.get_distribution_field_value(field_name='license',file_name=file_name,input_name=distribution_license)
+
             distribution.append(
                 {
-                'title':{'name':distribution_title, 'required':True, 'css_class':'','value':get_form_value(distribution_title)},
-                'description':{'name':distribution_description , 'required':True, 'css_class':'','value':get_form_value(distribution_description)},
-                'license':{'name':distribution_license , 'required':True, 'css_class':'','value': get_form_value()},
+                'title':{'name':distribution_title, 'required':True, 'css_class':'','value':title_value},
+                'description':{'name':distribution_description , 'required':True, 'css_class':'','value':description_value},
+                'license':{'name':distribution_license , 'required':True, 'css_class':'','value':license_value},
                 }
             )
         form_inputs = [{
-            'title':{'required':True, 'css_class':'','value':get_form_value('title')},
-            'description':{'required':True, 'css_class':'','value':get_form_value('description')},
-            'language':{'required':True, 'css_class':'','value':get_form_value('language')}, #https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-            'publisher':{'required':True, 'css_class':'','value':get_form_value('publisher')},
-            'email':{'required':True, 'css_class':'','value':get_form_value('email')},
-            'keywords':{'required':False, 'css_class':'','value':get_form_value('keywords')},
+            'title':{'required':True, 'css_class':'','value':self.get_form_value('title')},
+            'description':{'required':True, 'css_class':'','value':self.get_form_value('description')},
+            'language':{'required':True, 'css_class':'','value':self.get_form_value('language')}, #https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+            'publisher':{'required':True, 'css_class':'','value':self.get_form_value('publisher')},
+            'email':{'required':True, 'css_class':'','value':self.get_form_value('email')},
+            'keywords':{'required':False, 'css_class':'','value':self.get_form_value('keywords')},
              # distribution inputs should ALWAYS be linked to the physical file system not the data.json file.
-
+            'distribution':[distribution]
             }]
+        return form_inputs
 
-    def get_form_value(input_name):
-        #set the default to be a form input.
+    def get_distribution_field_value(self,field_name,file_name,input_name):
+
         the_value = self.get_body_argument(input_name, default=None, strip=True)
-        # else get the dcat_value
+
         if the_value == None:
             try:
-                the_value = '' #find the dcat_value!
+                distribution_data = self.dcat_data['distribution']
+            except:
+                distribution_data = get_dcat_distribution_object()
+            for file_details in distribution_data:
+                try:
+                    file_url = file_details['downloadURL']
+                    split_url = file_url.split("/")
+                    data_file_name = split_url[-1]
+                    if data_file_name == file_name:
+                        the_value = file_details[field_name]
+
+                except:
+                    the_value = ''
+            #print('the value for {0}] was:{1}'.format(input_name,the_value))
+            return the_value
+
+
+    def get_form_value(self,input_name):
+
+        the_value = self.get_body_argument(input_name, default=None, strip=True)
+
+        if the_value == None:
+            try:
+                if input_name == 'keywords':
+                    keyword_list = self.dcat_data['keyword']
+                    the_value = ','.join(keyword_list)
+                elif input_name == 'publisher':
+                    the_value = self.dcat_data['publisher']['name']
+                elif input_name == 'email':
+                    the_value = self.dcat_data['publisher']['mbox']
+                else:
+                    the_value = self.dcat_data[input_name]
+            except:
+                    the_value = ''
+
+        #print('the value for [{0}] was:{1}'.format(input_name,the_value))
+        return the_value
 
     def render_page(self):
         html = self.render_template('publish_dataset.html',
@@ -398,7 +436,8 @@ class PublishDatasetHandler(BaseHandler):
         message_class = self.message_class,
         form_class = self.form_class,
         dataset_name = self.slug,
-        datafiles = list_data_files(get_dataset_dir(self.slug))
+        datafiles = list_data_files(get_dataset_dir(self.slug)),
+        form_fields = self.form_fields
         )
         self.finish(html)
 
@@ -448,6 +487,7 @@ class DeleteDatasetHandler(BaseHandler):
         datasets = list_datasets(),
         )
         self.finish(html)
+
 
 class DCAT:
     '''This returns a python readable object of a dcat.json file within a dataset.
