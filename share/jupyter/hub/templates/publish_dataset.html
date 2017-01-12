@@ -30,25 +30,26 @@
             <div class="panel-body">
 
             <form action="{{base_url}}publish-dataset/{{dataset_name}}" method="post">
-                <div class="form-group">
+                <div class="form-group {{form_fields['title']['css_class']}}">
     			    <label class="control-label" for="title">Title</label>
-    			    <input type="text" class="form-control" name="title" id="title" value="{{title}}"/>
+    			    <input type="text" class="form-control" name="title" id="title" value="{{form_fields['title']['value']}}"/>
                 </div>
-                <div class="form-group">
+                <div class="form-group {{form_fields['description']['css_class']}}">
                     <label class="control-label" for="description">Description</label>
-                    <textarea name="description" class="form-control" id="description" placeholder="Please decribe your dataset">{{description}}</textarea>
+                    <textarea name="description" class="form-control" id="description" placeholder="Please decribe your dataset">{{form_fields['description']['value']}}</textarea>
                 </div>
-                <div class="form-group">
+                <div class="form-group {{form_fields['publisher']['css_class']}}">
                     <label class="control-label" for="publisher">Publisher</label>
-    			    <input type="text" class="form-control" name="publisher" id="publisher" value="{{publisher}}"/>
+    			    <input type="text" class="form-control" name="publisher" id="publisher" value="{{form_fields['publisher']['value']}}"/>
                 </div>
-                <div class="form-group">
+                <div class="form-group {{form_fields['email']['css_class']}}">
                     <label class="control-label" for="email">Email address</label>
-    			    <input type="text" class="form-control" name="email" id="" value="{{email}}"/>
+    			    <input type="text" class="form-control" name="email" id="email" value="{{form_fields['email']['value']}}"/>
                 </div>
-                <div class="form-group">
+                <div class="form-group {{form_fields['keywords']['css_class']}}">
                     <label class="control-label" for="keywords">Keywords</label>
-    			    <input type="text" class="form-control" name="keywords" id="" value="{{keywords}}"/>
+    			    <input type="text" class="form-control" name="keywords" id="keywords" value="{{form_fields['keywords']['value']}}" aria-describedby="keyword_help"/>
+                    <span id="keyword_help" class="help-block">{{form_fields['keywords']['help_text']}}</span>
                     <span class="help-block"></span>
                 </div>
 
@@ -57,22 +58,22 @@
             </div><!-- close panel -->
             <!-- DATA FILES -->
             <h3>Tell us about your data files:</h3>
-            {% for file in datafiles %}
+            {% for file in form_fields['distribution'] %}
             <div class="panel panel-default">
                 <div class="panel-heading">Tell us about the file <strong>{{file['file_name']}} ({{file['mimetype']}})</strong></div>
                 <div class="panel-body">
-                    <div class="form-group">
+                    <div class="form-group {{file['title']['css_class']}}">
                       <label class="control-label" for="title">Title</label>
-                      <input type="text" class="form-control" name="{{file['file_id']}}[title]" id="title" value=""/>
+                      <input type="text" class="form-control" name="{{file['title']['name']}}" id="title" value="{{file['title']['value']}}"/>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group {{file['description']['css_class']}}">
                       <label class="control-label" for="description">Description</label>
-                      <textarea name="{{file['file_id']}}[description]" class="form-control" id="description"
-                        placeholder="Please decribe what data is contained in this file."></textarea>
+                      <textarea name="{{file['description']['name']}}" class="form-control" id="description"
+                        placeholder="Please decribe what data is contained in this file.">{{file['description']['value']}}</textarea>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group {{file['license']['css_class']}}">
                       <label class="control-label" for="license">License</label>
-                      <input type="text" class="form-control" name="{{file['file_id']}}[license]" id="license" placeholder="eg: Open Data Commons Public Domain Dedication and License (PDDL)" value=""/>
+                      <input type="text" class="form-control" name="{{file['license']['name']}}" id="license" placeholder="eg: Open Data Commons Public Domain Dedication and License (PDDL)" value="{{file['license']['value']}}"/>
                       <span class="help-block">See <a href="http://opendatacommons.org/licenses/" target="_blank">Open Data License types</a> or <a href="https://data.gov.uk/terms-and-conditions" target="_blank">Open Government Licence</a> for help (each link opens in a new window)</span>
                     </div>
                 </div>

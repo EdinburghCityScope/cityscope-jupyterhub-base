@@ -315,10 +315,9 @@ class PublishDatasetHandler(BaseHandler):
         self.form_class = form_class
         self.slug = slug
         self.form_fields = form_fields
-        if self.form_fields == None:
-            dcat = DCAT(dataset_name = self.slug)
-            self.dcat_data = dcat.get_dcat_file()
-            self.form_fields = self.get_dcat_form()
+        dcat = DCAT(dataset_name = self.slug)
+        self.dcat_data = dcat.get_dcat_file()
+        self.form_fields = self.get_dcat_form()
 
 
     ###############################
@@ -340,7 +339,32 @@ class PublishDatasetHandler(BaseHandler):
         '''
         self.initialize(slug=slug)
         print("handling form post")
+        self.validate_form()
         self.render_page()
+
+    def validate_form(self):
+        # clear any messages
+        self.messages = []
+        # check standard input:
+        standard_fields = ['title','description','language','publisher','email','keywords']
+        for field in standard_fields:
+            if self.form_fields[field]['required'] == True and self.form_fields[field]['value'] == '':
+                self.form_fields[field]['css_class'] = 'has-error'
+                self.messages.append(self.form_fields[field]['error_text'])
+            else:
+                self.form_fields[field]['css_class'] = ''
+
+        for field in self.form_fields['distribution']:
+            #this will give us a dictionary for EACH file which has three inputs:
+            inputs = ['title','description','license']
+            # each input has a form name
+            for form_input_name in inputs:
+                fieldname = field[form_input_name]['name']
+                if field[form_input_name]['required'] == True and field[form_input_name]['value'] == '':
+                    field[form_input_name]['css_class'] = 'has-error'
+                    self.messages.append(field[form_input_name]['error_text'])
+                else:
+                    field[form_input_name]['css_class'] = ''
 
     def get_dcat_form(self):
         ''' form inputs need to be generated dynamically as we don't know
@@ -361,33 +385,86 @@ class PublishDatasetHandler(BaseHandler):
             distribution_title = datafile['file_id'] + '[title]'
             title_value = self.get_distribution_field_value(field_name='title',file_name=file_name,input_name=distribution_title)
             distribution_description = datafile['file_id'] + '[description]'
-            description_value = self.get_distribution_field_value(field_name='title',file_name=file_name,input_name=distribution_description)
+            description_value = self.get_distribution_field_value(field_name='description',file_name=file_name,input_name=distribution_description)
             distribution_license = datafile['file_id'] + '[license]'
             license_value = self.get_distribution_field_value(field_name='license',file_name=file_name,input_name=distribution_license)
 
             distribution.append(
                 {
-                'title':{'name':distribution_title, 'required':True, 'css_class':'','value':title_value},
-                'description':{'name':distribution_description , 'required':True, 'css_class':'','value':description_value},
-                'license':{'name':distribution_license , 'required':True, 'css_class':'','value':license_value},
+                'file_name':file_name,'mimetype':datafile['mimetype'],
+                'title':{
+                        'name':distribution_title,
+                        'required':True,
+                        'css_class':'',
+                        'value':title_value,
+                        'error_text': 'Please provide a title for the file: {0}'.format(file_name)
+                        },
+                'description':{
+                        'name':distribution_description ,
+                        'required':True,
+                        'css_class':'',
+                        'value':description_value,
+                        'error_text': 'Please provide a description for the file: {0}'.format(file_name)
+                        },
+                'license':{
+                        'name':distribution_license ,
+                        'required':True,
+                        'css_class':'',
+                        'value':license_value,
+                        'error_text': 'Please provide a license type for the file: {0}'.format(file_name)
+                        },
                 }
             )
-        form_inputs = [{
-            'title':{'required':True, 'css_class':'','value':self.get_form_value('title')},
-            'description':{'required':True, 'css_class':'','value':self.get_form_value('description')},
-            'language':{'required':True, 'css_class':'','value':self.get_form_value('language')}, #https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-            'publisher':{'required':True, 'css_class':'','value':self.get_form_value('publisher')},
-            'email':{'required':True, 'css_class':'','value':self.get_form_value('email')},
-            'keywords':{'required':False, 'css_class':'','value':self.get_form_value('keywords')},
+        form_inputs = {
+            'title':{
+                    'required':True,
+                    'css_class':'',
+                    'value':self.get_form_value('title'),
+                    'help_text':'',
+                    'error_text': 'Please provide a title for your dataset}'
+                    },
+            'description':{
+                    'required':True,
+                    'css_class':'',
+                    'value':self.get_form_value('description'),
+                    'help_text':'',
+                    'error_text': 'Please provide a description for your dataset}'
+                    },
+            'language':{
+                    'required':True,
+                    'css_class':'',
+                    'value':self.get_form_value('language'),
+                    'help_text':'',
+                    'error_text': 'Please provide a language code for your dataset}'
+                    }, #https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+            'publisher':{
+                    'required':True,
+                    'css_class':'',
+                    'value':self.get_form_value('publisher'),
+                    'help_text':'',
+                    'error_text': 'Who is the publisher this dataset}',
+                    },
+            'email':{
+                    'required':True,
+                    'css_class':'',
+                    'value':self.get_form_value('email'),
+                    'help_text':'',
+                    'error_text': 'Please provide an email address for the publisher of this dataset}'},
+            'keywords':{
+                    'required':False,
+                    'css_class':'',
+                    'value':self.get_form_value('keywords'),
+                    'help_text':'A comma delimited list of words',
+                    'error_text': 'Please provide some keywords that describe your dataset}'},
              # distribution inputs should ALWAYS be linked to the physical file system not the data.json file.
-            'distribution':[distribution]
-            }]
+            'distribution':distribution
+            }
         return form_inputs
 
     def get_distribution_field_value(self,field_name,file_name,input_name):
 
         the_value = self.get_body_argument(input_name, default=None, strip=True)
-
+        #print('the value for {0}] was:{1}'.format(input_name,the_value))
         if the_value == None:
             try:
                 distribution_data = self.dcat_data['distribution']
@@ -403,9 +480,10 @@ class PublishDatasetHandler(BaseHandler):
 
                 except:
                     the_value = ''
-            #print('the value for {0}] was:{1}'.format(input_name,the_value))
-            return the_value
-
+        if the_value == None:
+            the_value = ''
+        #print('the value for {0}] IS NOW :{1}'.format(input_name,the_value))
+        return the_value
 
     def get_form_value(self,input_name):
 
@@ -424,16 +502,26 @@ class PublishDatasetHandler(BaseHandler):
                     the_value = self.dcat_data[input_name]
             except:
                     the_value = ''
-
+        if the_value == None:
+            the_value = ''
         #print('the value for [{0}] was:{1}'.format(input_name,the_value))
         return the_value
 
     def render_page(self):
+        if len(self.messages) > 0:
+            self.message_class = 'bg-danger'
+            successful = False
+        else:
+            self.message_class = 'bg-success'
+            successful = True
+            self.messages.append('Thank you. Validation successful.')
+
         html = self.render_template('publish_dataset.html',
         user = get_user_uun(),
         messages = self.messages,
         error_message = self.error_message,
         message_class = self.message_class,
+        successful = successful,
         form_class = self.form_class,
         dataset_name = self.slug,
         datafiles = list_data_files(get_dataset_dir(self.slug)),
@@ -541,7 +629,7 @@ class DCAT:
         print('getting dcat file')
         if os.path.isfile(self.dcat_file_path):
             data = read_json_file(self.dcat_file_path)
-            print('Data read from {0} file: {1}'.format(self.dcat_file_path,data))
+            #print('Data read from {0} file: {1}'.format(self.dcat_file_path,data))
         else:
             data = python_to_json(self)
             #do something
@@ -598,7 +686,7 @@ class HelloHandler(BaseHandler):
 
         dcat_dir = dataset_dir + 'abc/'
         dcat_data = DCAT(dcat_dir)
-        print(dcat_data)
+        #print(dcat_data)
         self.write("<p>dCat file is: {}</p>".format(dcat_data.get_dcat_file()))
 
 
