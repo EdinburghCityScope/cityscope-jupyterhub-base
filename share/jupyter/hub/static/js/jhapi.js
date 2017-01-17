@@ -175,6 +175,15 @@ define(['jquery', 'utils'], function ($, utils) {
         );
     };
 
+    JHAPI.prototype.get_fieldtrip_status = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'GET', dataType: null});
+        this.api_request(
+            utils.url_path_join('users', user, 'fieldtrip'),
+            options
+        );
+    };
+
     JHAPI.prototype.get_loopback_credential = function (user, options) {
         options = options || {};
         options = update(options, {type: 'GET', dataType: null, data: 'credential=get'});
@@ -226,6 +235,24 @@ define(['jquery', 'utils'], function ($, utils) {
         options = update(options, {type: 'DELETE', dataType: null});
         this.api_request(
             utils.url_path_join('users', user, 'wordpress'),
+            options
+        );
+    };
+
+    JHAPI.prototype.start_fieldtrip = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'POST', dataType: null});
+        this.api_request(
+            utils.url_path_join('users', user, 'fieldtrip'),
+            options
+        );
+    };
+
+    JHAPI.prototype.stop_fieldtrip = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'DELETE', dataType: null});
+        this.api_request(
+            utils.url_path_join('users', user, 'fieldtrip'),
             options
         );
     };

@@ -17,6 +17,7 @@ from .spawner import LocalProcessSpawner
 from .data_api_spawner import LocalLoopbackProcessSpawner,DockerProcessSpawner
 from .mysql_spawner import MySQLProcessSpawner
 from .wordpress_spawner import WordpressProcessSpawner
+from .fieldtrip_spawner import FieldtripProcessSpawner
 
 class UserDict(dict):
     """Like defaultdict, but for users
@@ -160,7 +161,15 @@ class User(HasTraits):
            hub=hub,
            authenticator=self.authenticator,
            config=self.settings.get('config'),
-       )
+        )
+
+        self.fieldtrip_spawner = FieldtripProcessSpawner(
+           user=self,
+           db=self.db,
+           hub=hub,
+           authenticator=self.authenticator,
+           config=self.settings.get('config'),
+        )
 
 
 

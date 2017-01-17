@@ -62,6 +62,7 @@ from .spawner import Spawner, LocalProcessSpawner
 from .data_api_spawner import DataApiSpawner,LocalLoopbackProcessSpawner,DockerProcessSpawner
 from .mysql_spawner import MySQLSpawner,MySQLProcessSpawner
 from .wordpress_spawner import WordpressSpawner,WordpressProcessSpawner
+from .fieldtrip_spawner import FieldtripSpawner,FieldtripProcessSpawner
 
 # For faking stats
 from .emptyclass import EmptyClass
@@ -230,7 +231,9 @@ class JupyterHub(Application):
         MySQLSpawner,
         MySQLProcessSpawner,
         WordpressSpawner,
-        WordpressProcessSpawner
+        WordpressProcessSpawner,
+        FieldtripSpawner,
+        FieldtripProcessSpawner,
     ])
 
     load_groups = Dict(List(Unicode()),
@@ -514,6 +517,11 @@ class JupyterHub(Application):
     wordpress_spawner_class = Type(WordpressSpawner,
         config=True,
         help="""The class to use for spawning wordpress servers. Should be a subclass of WordpressSpawner"""
+    ).tag(config=True)
+
+    fieldtrip_spawner_class = Type(FieldtripSpawner,
+        config=True,
+        help="""The class to use for spawning fieldtrip servers. Should be a subclass of FieldtripSpawner"""
     ).tag(config=True)
 
     db_url = Unicode('sqlite:///jupyterhub.sqlite',
