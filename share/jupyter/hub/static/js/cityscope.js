@@ -26,12 +26,16 @@ $(document).ready(function()
     console.info(user);
 
     $("#stop-loopback-button").hide();
+    $("#start-loopback-button").hide();
     $("#stop-mysql-button").hide();
     $("#goto-my-api").hide();
+    $("#stop-my-api").hide();
     $("#stop-wordpress-button").hide();
     $("#setup-data-button").hide();
     $("#start-mysql-button").show();
     $("#start-wordpress-button").show();
+    $("#create-loopback-button").show();
+    $("#show-api-password").hide();
 
     api.get_loopback_status(user,{
       success: function(xhr) {
@@ -40,17 +44,40 @@ $(document).ready(function()
       error: function(xhr){
         $("#stop-loopback-button").hide();
         $("#goto-my-api").hide();
-        $("#start-loopback-button").show();
+        $("#create-loopback-button").show();
       },
       complete: function(xhr){
 
         if (xhr.status=="200")
         {
-          console.info('status is up');
+          console.info('api is up');
           $("#stop-loopback-button").show();
+          $("#stop-my-api").show();
           $("#goto-my-api").show();
           $("#start-loopback-button").hide();
           $("#setup-data-button").show();
+          $("#show-api-password").show();
+          $("#create-loopback-button").hide();
+        }
+        else if (xhr.status=="204") {
+          console.log("api is stopped");
+          $("#stop-loopback-button").hide();
+          $("#stop-my-api").hide();
+          $("#goto-my-api").hide();
+          $("#start-loopback-button").show();
+          $("#setup-data-button").hide();
+          $("#show-api-password").show();
+          $("#create-loopback-button").hide();
+        }
+        else if (xhr.status=="404"){
+          console.log("api not yet created");
+          $("#stop-loopback-button").hide();
+          $("#stop-my-api").hide();
+          $("#goto-my-api").hide();
+          $("#start-loopback-button").hide();
+          $("#setup-data-button").hide();
+          $("#show-api-password").hide();
+          $("#create-loopback-button").show();
         }
       }
     });
@@ -99,12 +126,35 @@ $(document).ready(function()
               $("#successRow").removeClass("hidden");
               $("#successMessage").text(data.message);
               $("#stop-loopback-button").show();
+              $("#stop-my-api").show();
               $("#start-loopback-button").hide();
+              $("#create-loopback-button").hide();
               $("#goto-my-api").show();
               $("#setup-data-button").show();
+              $("#show-api-password").show();
           }
       });
     });
+
+    $("#create-loopback-button").click(function () {
+      $("#warningRow").removeClass("hidden");
+      $("#warningMessage").text("Starting loopback, please wait...");
+       api.start_loopback(user, {
+         success: function (data) {
+             console.info('succesfully started loopback');
+             $("#warningRow").addClass("hidden");
+             $("#successRow").removeClass("hidden");
+             $("#successMessage").text(data.message);
+             $("#stop-loopback-button").show();
+             $("#stop-my-api").show();
+             $("#start-loopback-button").hide();
+             $("#create-loopback-button").hide();
+             $("#goto-my-api").show();
+             $("#setup-data-button").show();
+             $("#show-api-password").show();
+         }
+     });
+   });
 
     $("#start-mysql-button").click(function () {
       $("#warningRow").removeClass("hidden");
@@ -138,6 +188,10 @@ $(document).ready(function()
     });
    });
 
+   $("#show-api-password").click(function(){
+     $('#apiPasswordModal').modal();
+   });
+
 
      $("#stop-my-api").click(function () {
                $("#warningRow").removeClass("hidden");
@@ -149,6 +203,7 @@ $(document).ready(function()
                 $("#successRow").removeClass("hidden");
                 $("#successMessage").text("Loopback stopped.");
                 $("#stop-loopback-button").hide();
+                $("#stop-my-api").hide();
                 $("#goto-my-api").hide();
                 $("#start-loopback-button").show();
                 $("#setup-data-button").hide();

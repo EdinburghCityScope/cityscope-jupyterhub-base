@@ -82,7 +82,8 @@
       </div>
       <div class="panel-body">
 
-        <button id="start-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
+        <button id="create-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
+        <button id="start-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Start my API</button>
         <a id="goto-my-api" href="/loopback/{{ user.name }}/explorer" class="btn btn-lg btn-primary">Go to My API</a>
         <div class="btn-group pull-right">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -90,12 +91,33 @@
             </button>
             <ul class="dropdown-menu">
               <li><a id="stop-my-api" href="#">Stop my API</a></li>
-              <li><a href="#">Show my API password</a></li>
+              <li><a id="show-api-password" href="#">Show my API password</a></li>
             </ul>
         </div>
       </div>
       <div class="panel-footer">For developers, create an API so you can programmatically interact with and create new data</div>
     </div>
+    <!-- Modal -->
+     <div class="modal fade" id="apiPasswordModal" tabindex="-1" role="dialog" aria-labelledby="apiPasswordModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="apiPasswordModalLabel">Loopback Password</h4>
+                </div>
+                <div id="apiPasswordModalBody" class="modal-body">
+
+                </div>
+              <!--  <div class="modal-footer">
+                    <form id="${n}optOutForm" name="optOutForm" action="${optInOutUrl}" method="POST">
+                        <input name="timetableOptOutIn" type="hidden" value="optout"/>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button id="${n}optOutConfirm" type="button" class="btn btn-primary">Opt out</button>
+                    </form>
+                </div>-->
+            </div>
+        </div>
+     </div>
     <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title">My Tour Blog</h3>

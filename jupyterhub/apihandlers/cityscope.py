@@ -80,17 +80,17 @@ class UserLoopbackAPIHandler(APIHandler):
         user = self.find_user(name)
         print("Data API status")
         data_api_spawner = user.data_api_spawner
-        status = data_api_spawner.get_state()
+        status = yield data_api_spawner.get_state()
         print(status)
         if status is not None:
             if "pid" in status:
                 self.set_status(200)
             elif "container_id" in status:
                 self.set_status(200)
-            else:
+            elif "container_state" in status:
                 self.set_status(204)
         else:
-            self.set_status(204)
+            self.set_status(404)
 
 
 

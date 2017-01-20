@@ -557,6 +557,14 @@ class DockerProcessSpawner(DataApiSpawner):
         )
     )
 
+    volume_driver = Unicode("convoy",
+    config=True,
+    help=dedent(
+        """
+        Volume driver to be used, defaults to convoy.
+        """
+    ))
+
     read_only_volumes = Dict(
         config=True,
         help=dedent(
@@ -701,10 +709,19 @@ class DockerProcessSpawner(DataApiSpawner):
     def container_name(self):
         return "{}-{}".format(self.container_prefix, self.escaped_name)
 
+    @gen.coroutine
     def get_state(self):
         state = super(DockerProcessSpawner, self).get_state()
-        if self.container_id:
-            state['container_id'] = self.container_id
+        container = yield self.get_container()
+        if container is None:
+            self.log.info("Returning none")
+            return None
+        if container['State']['Running']:
+            self.log.info("returning %s",container['Id'])
+            state['container_id'] = container['Id']
+            self.container_id = container['Id']
+        else:
+            state['container_state'] = container['State']['Status']
         return state
 
     def _public_hub_api_url(self):
@@ -792,6 +809,7 @@ class DockerProcessSpawner(DataApiSpawner):
                 self.container_id = ''
             else:
                 raise
+        self.log.info(container)
         return container
 
     @gen.coroutine
@@ -924,7 +942,7 @@ class DockerProcessSpawner(DataApiSpawner):
             create_kwargs.setdefault('host_config', {}).update(host_config)
 
             for volume in self.volume_binds.keys():
-                yield self.docker('create_volume', name=volume, driver='convoy')
+                yield self.docker('create_volume', name=volume, driver=self.volume_driver)
 
             # create the container
             resp = yield self.docker('create_container', **create_kwargs)
