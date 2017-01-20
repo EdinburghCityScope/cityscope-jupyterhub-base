@@ -78,21 +78,28 @@ class UserLoopbackAPIHandler(APIHandler):
     @admin_or_self
     def get(self,name):
         user = self.find_user(name)
-        print("Data API status")
         data_api_spawner = user.data_api_spawner
-        status = yield data_api_spawner.get_state()
-        print(status)
-        if status is not None:
-            if "pid" in status:
-                self.set_status(200)
-            elif "container_id" in status:
-                self.set_status(200)
-            elif "container_state" in status:
-                self.set_status(204)
+        if (self.get_arguments('credential')):
+            print("Data API get credential")
+            status = yield data_api_spawner.get_container()
+            self.set_status(200)
+            for index,arg in enumerate(status['Args']):
+                if arg == '-credential':
+                    self.write(status['Args'][index+1])
         else:
-            self.set_status(404)
-
-
+            print("Data API status")
+            status = yield data_api_spawner.get_state()
+            if status is not None:
+                if "pid" in status:
+                    self.set_status(200)
+                elif "container_id" in status:
+                    self.set_status(200)
+                elif "container_state" in status:
+                    self.set_status(204)
+                else:
+                    self.set_status(404)
+            else:
+                self.set_status(404)
 
 class UserMySQLAPIHandler(APIHandler):
 

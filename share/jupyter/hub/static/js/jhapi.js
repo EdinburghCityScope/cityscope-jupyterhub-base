@@ -166,6 +166,15 @@ define(['jquery', 'utils'], function ($, utils) {
         );
     };
 
+    JHAPI.prototype.get_loopback_credential = function (user, options) {
+        options = options || {};
+        options = update(options, {type: 'GET', dataType: null, data: 'credential=get'});
+        this.api_request(
+            utils.url_path_join('users', user, 'loopback'),
+            options
+        );
+    };
+
 
     JHAPI.prototype.start_mysql = function (user, options) {
         options = options || {};

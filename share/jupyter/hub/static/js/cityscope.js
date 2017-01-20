@@ -189,7 +189,14 @@ $(document).ready(function()
    });
 
    $("#show-api-password").click(function(){
-     $('#apiPasswordModal').modal();
+     api.get_loopback_credential(user,{
+       success: function(data){
+         console.log(data);
+         $("#apiPasswordModalBody").html(data);
+         $('#apiPasswordModal').modal();
+       }
+     });
+
    });
 
 
