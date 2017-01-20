@@ -82,14 +82,14 @@
       </div>
       <div class="panel-body">
 
-        <button id="create-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
-        <a href="/loopback/" class="hidden btn btn-lg btn-primary">Go to My API</a>
+        <button id="start-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
+        <a id="goto-my-api" href="/loopback/{{ user.name }}/explorer" class="btn btn-lg btn-primary">Go to My API</a>
         <div class="btn-group pull-right">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
-              <li><a id="stop-loopback-button" href="#">Stop my API</a></li>
+              <li><a id="stop-my-api" href="#">Stop my API</a></li>
               <li><a href="#">Show my API password</a></li>
             </ul>
         </div>
@@ -102,7 +102,7 @@
       </div>
       <div class="panel-body">
         <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Tour Blog</button>
-        <a href="/wordpress/" class="hidden btn btn-lg btn-primary">Go to My Tour Blog</a>
+        <a href="/wordpress/{{ user.name }}" class="hidden btn btn-lg btn-primary">Go to My Tour Blog</a>
         <div class="btn-group pull-right">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
@@ -147,8 +147,9 @@
             </thead>
             <tbody></tbody>
           </table>
+        </form>
       </div>
-    <div class="text-center">
+  <!--  <div class="text-center">
       <button id="start-loopback-button" type="button" class="btn btn-lg btn-success">Start Loopback Server</button>
       <button id="stop-loopback-button" type="button" class="btn btn-lg btn-danger">Stop Loopback Server</button>
       <button id="setup-data-button" type="submit" class="btn btn-lg btn-warning">Setup Data</button>
@@ -159,8 +160,8 @@
       <button id="stop-wordpress-button" type="submit" class="btn btn-lg btn-warning">Stop Wordpress</button>
 
 
-      </form>
-    </div>
+
+    </div>-->
   </div>
 </div>
 

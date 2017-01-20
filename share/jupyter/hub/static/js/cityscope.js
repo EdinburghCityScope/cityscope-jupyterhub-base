@@ -27,6 +27,7 @@ $(document).ready(function()
 
     $("#stop-loopback-button").hide();
     $("#stop-mysql-button").hide();
+    $("#goto-my-api").hide();
     $("#stop-wordpress-button").hide();
     $("#setup-data-button").hide();
     $("#start-mysql-button").show();
@@ -36,12 +37,18 @@ $(document).ready(function()
       success: function(xhr) {
 
       },
+      error: function(xhr){
+        $("#stop-loopback-button").hide();
+        $("#goto-my-api").hide();
+        $("#start-loopback-button").show();
+      },
       complete: function(xhr){
 
         if (xhr.status=="200")
         {
           console.info('status is up');
           $("#stop-loopback-button").show();
+          $("#goto-my-api").show();
           $("#start-loopback-button").hide();
           $("#setup-data-button").show();
         }
@@ -93,6 +100,7 @@ $(document).ready(function()
               $("#successMessage").text(data.message);
               $("#stop-loopback-button").show();
               $("#start-loopback-button").hide();
+              $("#goto-my-api").show();
               $("#setup-data-button").show();
           }
       });
@@ -131,7 +139,7 @@ $(document).ready(function()
    });
 
 
-     $("#stop-loopback-button").click(function () {
+     $("#stop-my-api").click(function () {
                $("#warningRow").removeClass("hidden");
                $("#warningMessage").text("Stopping loopback, please wait...");
         api.stop_loopback(user, {
@@ -141,6 +149,7 @@ $(document).ready(function()
                 $("#successRow").removeClass("hidden");
                 $("#successMessage").text("Loopback stopped.");
                 $("#stop-loopback-button").hide();
+                $("#goto-my-api").hide();
                 $("#start-loopback-button").show();
                 $("#setup-data-button").hide();
             }
