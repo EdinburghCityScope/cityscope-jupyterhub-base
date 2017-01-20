@@ -31,6 +31,8 @@ $(document).ready(function()
     $("#goto-my-api").hide();
     $("#stop-my-api").hide();
     $("#stop-wordpress-button").hide();
+    $("#stop-blog-button").hide();
+    $("#start-blog-button").hide();
     $("#setup-data-button").hide();
     $("#start-mysql-button").show();
     $("#start-wordpress-button").show();
@@ -172,6 +174,29 @@ $(document).ready(function()
      });
    });
 
+   $("#create-blog-button").click(function(){
+     $("#warningRow").removeClass("hidden");
+     $("#warningMessage").text("Setting up a new blog for you, please wait, this may take a little while...");
+     console.log("starting mysql");
+     api.start_mysql(user, {
+       success: function (data) {
+           console.info('succesfully started mysql');
+           console.log('starting wordpress')
+           api.start_wordpress(user, {
+             success: function (data) {
+                 console.info('succesfully started Wordpress');
+                 $("#warningRow").addClass("hidden");
+                 $("#successRow").removeClass("hidden");
+                 $("#successMessage").text(data.message);
+                 $("#stop-blog-button").show();
+                 $("#start-blog-button").hide();
+                 $("#create-blog-button").hide();
+             }
+           });
+         }
+       });
+   });
+
    $("#start-wordpress-button").click(function () {
      $("#warningRow").removeClass("hidden");
      $("#warningMessage").text("Starting Wordpress, please wait...");
@@ -191,7 +216,6 @@ $(document).ready(function()
    $("#show-api-password").click(function(){
      api.get_loopback_credential(user,{
        success: function(data){
-         console.log(data);
          $("#apiPasswordModalBody").html(data);
          $('#apiPasswordModal').modal();
        }

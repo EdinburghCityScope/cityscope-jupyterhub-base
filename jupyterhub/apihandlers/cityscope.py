@@ -262,9 +262,6 @@ class UserWordpressAPIHandler(APIHandler):
         else:
             self.set_status(204)
 
-
-
-
 default_handlers = [
     (r"/api/users/([^/]+)/loopback", UserLoopbackAPIHandler),
     (r"/api/users/([^/]+)/mysql", UserMySQLAPIHandler),

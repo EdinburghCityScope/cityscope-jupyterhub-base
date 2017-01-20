@@ -352,6 +352,15 @@ class WordpressProcessSpawner(WordpressSpawner):
         )
     )
 
+    volume_driver = Unicode("convoy",
+        config=True,
+        help=dedent(
+            """
+            Volume driver to be used, defaults to convoy.
+            """
+        )
+    )
+
     read_only_volumes = Dict(
         config=True,
         help=dedent(
@@ -660,7 +669,7 @@ class WordpressProcessSpawner(WordpressSpawner):
             self.log.debug("Starting Wordpress host with config: %s", host_config)
 
             for volume in self.volume_binds.keys():
-                yield self.docker('create_volume', name=volume, driver='convoy')
+                yield self.docker('create_volume', name=volume, driver=self.volume_driver)
 
             host_config = self.client.create_host_config(**host_config)
             create_kwargs.setdefault('host_config', {}).update(host_config)
