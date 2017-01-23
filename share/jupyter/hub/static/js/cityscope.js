@@ -7,21 +7,6 @@ require(["jquery","jhapi","bootstrap"], function ($,JHAPI) {
 
 $(document).ready(function()
 {
-  //TODO Add refined query which only returns repositories which contain a data.json in the repo
-  $.get("https://api.github.com/search/repositories?q=user:EdinburghCityScope&order=desc")
-    .done(function(data){
-    $.each(data.items, function(index){
-      if ((data.items[index].name!='cityscope-loopback-docker')&&(data.items[index].name!='edinburghcityscope-utils')&&(data.items[index].name!='cityscope-notebook'))
-      $("#github-repositories tbody").append('<tr><td>'+data.items[index].description+'</td><td><a target="_blank" href="'+data.items[index].html_url+'">View repository details</a></td><td><input type="checkbox" name="'+data.items[index].full_name+'" value="'+data.items[index].clone_url+'"/></td></tr>');
-    });
-
-    })
-    .error(function(){
-      console.error('Error occurred');
-      $("#errorMessage").text("An error occurred retrieving dataset information.")
-      $("#errorRow").removeClass("hidden");
-
-    });
 
     $("#stop-loopback-button").hide();
     $("#start-loopback-button").hide();
@@ -122,40 +107,6 @@ $(document).ready(function()
           $("#create-blog-button").show();
         }
       }
-    });
-
-
-    $('#repository-form').submit(function(event){
-
-      $("#warningMessage").text("Data setup in progress, please wait...");
-      $("#warningRow").removeClass("hidden");
-
-      var values={};
-      var i=1;
-      $('form#repository-form :checkbox').each(function(){
-        if ($(this).is(':checked'))
-        {
-          values[this.name]=$(this).val();
-        }
-
-      });
-      console.info(values);
-
-      api.setup_loopback(user,JSON.stringify(values), {
-            success: function (data) {
-                console.info('succesfully updated loopback'+JSON.stringify(data));
-                $("#warningRow").addClass("hidden");
-                $("#successMessage").text(data.message);
-                $("#successRow").removeClass("hidden");
-            },
-            error: function(error) {
-              console.info("error encountered"+error);
-              $("#warningRow").addClass("hidden");
-              $("#errorMessage").text("Error encountered setting up data");
-              $("#errorRow").removeClass("hidden");
-            }
-        });
-      event.preventDefault();
     });
 
      $("#start-loopback-button").click(function () {

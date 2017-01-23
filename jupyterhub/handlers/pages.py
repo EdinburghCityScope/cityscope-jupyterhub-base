@@ -71,6 +71,16 @@ class HomeHandler(BaseHandler):
         )
         self.finish(html)
 
+class GithubImportHandler(BaseHandler):
+    """Import a dataset from Github."""
+
+    @web.authenticated
+    @gen.coroutine
+    def get(self):
+        user = self.get_current_user()
+        html = self.render_template('public_data_importer.html',user=user,)
+        self.finish(html)
+
 
 class SpawnHandler(BaseHandler):
     """Handle spawning of single-user servers via form.
@@ -186,12 +196,12 @@ class AdminHandler(BaseHandler):
 
 class ProxyErrorHandler(BaseHandler):
     """Handler for rendering proxy error pages"""
-    
+
     def get(self, status_code_s):
         status_code = int(status_code_s)
         status_message = responses.get(status_code, 'Unknown HTTP Error')
         # build template namespace
-        
+
         hub_home = url_path_join(self.hub.server.base_url, 'home')
         message_html = ''
         if status_code == 503:
@@ -222,5 +232,6 @@ default_handlers = [
     (r'/home', HomeHandler),
     (r'/admin', AdminHandler),
     (r'/spawn', SpawnHandler),
+    (r'/add-public-dataset',GithubImportHandler),
     (r'/error/(\d+)', ProxyErrorHandler),
 ]

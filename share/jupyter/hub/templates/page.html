@@ -30,7 +30,7 @@
     <title>{% block title %}Jupyter Hub{% endblock %}</title>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     {% block stylesheet %}
     <link rel="stylesheet" href="{{ static_url("css/style.min.css") }}" type="text/css"/>
     {% endblock %}
@@ -46,6 +46,8 @@
             jquery: '../components/jquery/jquery.min',
             bootstrap: '../components/bootstrap/js/bootstrap.min',
             moment: "../components/moment/moment",
+            "datatables.net": "../components/datatables.net/js/jquery.dataTables.min",
+            datatablesbs: "../components/datatables.net-bs/js/dataTables.bootstrap.min"
           },
           shim: {
             bootstrap: {
@@ -55,7 +57,7 @@
           }
       });
     </script>
-    
+
     <script type="text/javascript">
       window.jhdata = {
         base_url: "{{base_url}}",

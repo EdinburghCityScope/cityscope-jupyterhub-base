@@ -67,7 +67,9 @@ class UserLoopbackAPIHandler(APIHandler):
     def put(self, name):
         user = self.find_user(name)
         print("Data API add dataset")
+
         data = json.loads(self.request.body.decode('utf-8'))
+
         data_api_spawner = user.data_api_spawner
         yield data_api_spawner.setup_data(data)
         response = { 'message' : 'Data setup complete'}
