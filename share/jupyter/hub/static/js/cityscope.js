@@ -23,8 +23,6 @@ $(document).ready(function()
 
     });
 
-    console.info(user);
-
     $("#stop-loopback-button").hide();
     $("#start-loopback-button").hide();
     $("#stop-mysql-button").hide();
@@ -80,6 +78,48 @@ $(document).ready(function()
           $("#setup-data-button").hide();
           $("#show-api-password").hide();
           $("#create-loopback-button").show();
+        }
+      }
+    });
+
+    api.get_blog_status(user,{
+      success: function(xhr) {
+
+      },
+      error: function(xhr){
+        $("#stop-blog-button").hide();
+        $("#goto-my-blog").hide();
+        $("#create-blog-button").show();
+      },
+      complete: function(xhr){
+
+        if (xhr.status=="200")
+        {
+          console.info('blog is up');
+          $("#stop-blog-button").show();
+          $("#stop-my-blog").show();
+          $("#goto-my-blog").show();
+          $("#start-blog-button").hide();
+          $("#show-blog-password").show();
+          $("#create-blog-button").hide();
+        }
+        else if (xhr.status=="204") {
+          console.log("blog is stopped");
+          $("#stop-blog-button").hide();
+          $("#stop-my-blog").hide();
+          $("#goto-my-blog").hide();
+          $("#start-blog-button").show();
+          $("#show-blog-password").show();
+          $("#create-blog-button").hide();
+        }
+        else if (xhr.status=="404"){
+          console.log("blog not yet created");
+          $("#stop-blog-button").hide();
+          $("#stop-my-blog").hide();
+          $("#goto-my-blog").hide();
+          $("#start-blog-button").hide();
+          $("#show-blog-password").hide();
+          $("#create-blog-button").show();
         }
       }
     });
@@ -158,22 +198,6 @@ $(document).ready(function()
      });
    });
 
-    $("#start-mysql-button").click(function () {
-      $("#warningRow").removeClass("hidden");
-      $("#warningMessage").text("Starting mysql, please wait...");
-       api.start_mysql(user, {
-         success: function (data) {
-             console.info('succesfully started mysql');
-             $("#warningRow").addClass("hidden");
-             $("#successRow").removeClass("hidden");
-             $("#successMessage").text(data.message);
-             $("#stop-mysql-button").show();
-             $("#start-mysql-button").hide();
-
-         }
-     });
-   });
-
    $("#create-blog-button").click(function(){
      $("#warningRow").removeClass("hidden");
      $("#warningMessage").text("Setting up a new blog for you, please wait, this may take a little while...");
@@ -188,33 +212,41 @@ $(document).ready(function()
                  $("#warningRow").addClass("hidden");
                  $("#successRow").removeClass("hidden");
                  $("#successMessage").text(data.message);
-                 $("#stop-blog-button").show();
+                 $("#stop-my-blog").show();
                  $("#start-blog-button").hide();
                  $("#create-blog-button").hide();
+                 $("#goto-my-blog").show();
              }
            });
          }
        });
    });
 
-   $("#start-wordpress-button").click(function () {
+   $("#start-blog-button").click(function () {
      $("#warningRow").removeClass("hidden");
-     $("#warningMessage").text("Starting Wordpress, please wait...");
-      api.start_wordpress(user, {
-        success: function (data) {
-            console.info('succesfully started Wordpress');
-            $("#warningRow").addClass("hidden");
-            $("#successRow").removeClass("hidden");
-            $("#successMessage").text(data.message);
-            $("#stop-wordpress-button").show();
-            $("#start-wordpress-button").hide();
-
-        }
-    });
+     $("#warningMessage").text("Starting your Blog, please wait...");
+     api.start_mysql(user, {
+       success: function (data) {
+           console.info('succesfully started mysql');
+           console.log('starting wordpress')
+           api.start_wordpress(user, {
+             success: function (data) {
+                 console.info('succesfully started Wordpress');
+                 $("#warningRow").addClass("hidden");
+                 $("#successRow").removeClass("hidden");
+                 $("#successMessage").text(data.message);
+                 $("#stop-my-blog").show();
+                 $("#start-blog-button").hide();
+                 $("#create-blog-button").hide();
+                 $("#goto-my-blog").show();
+             }
+           });
+         }
+       });
    });
 
    $("#show-api-password").click(function(){
-     api.get_loopback_credential(user,{
+     api.get_blog_credential(user,{
        success: function(data){
          $("#apiPasswordModalBody").html(data);
          $('#apiPasswordModal').modal();
@@ -223,6 +255,15 @@ $(document).ready(function()
 
    });
 
+   $("#show-blog-password").click(function(){
+     api.get_loopback_credential(user,{
+       success: function(data){
+         $("#blogPasswordModalBody").html(data);
+         $('#blogPasswordModal').modal();
+       }
+     });
+
+   });
 
      $("#stop-my-api").click(function () {
                $("#warningRow").removeClass("hidden");
@@ -242,23 +283,7 @@ $(document).ready(function()
         });
     });
 
-    $("#stop-mysql-button").click(function () {
-              $("#warningRow").removeClass("hidden");
-              $("#warningMessage").text("Stopping mysql, please wait...");
-       api.stop_mysql(user, {
-           success: function () {
-               console.info('succesfully stopped mysql');
-               $("#warningRow").addClass("hidden");
-               $("#successRow").removeClass("hidden");
-               $("#successMessage").text("MySQL stopped.");
-               $("#stop-mysql-button").hide();
-               $("#start-mysql-button").show();
-
-           }
-       });
-   });
-
-   $("#stop-wordpress-button").click(function () {
+   $("#stop-my-blog").click(function () {
              $("#warningRow").removeClass("hidden");
              $("#warningMessage").text("Stopping Wordpress, please wait...");
       api.stop_wordpress(user, {
@@ -267,9 +292,9 @@ $(document).ready(function()
               $("#warningRow").addClass("hidden");
               $("#successRow").removeClass("hidden");
               $("#successMessage").text("Wordpress stopped.");
-              $("#stop-wordpress-button").hide();
-              $("#start-wordpress-button").show();
-
+              $("#stop-my-blog").hide();
+              $("#start-blog-button").show();
+              $("#goto-my-blog").hide();
           }
       });
   });

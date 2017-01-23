@@ -809,7 +809,6 @@ class DockerProcessSpawner(DataApiSpawner):
                 self.container_id = ''
             else:
                 raise
-        self.log.info(container)
         return container
 
     @gen.coroutine

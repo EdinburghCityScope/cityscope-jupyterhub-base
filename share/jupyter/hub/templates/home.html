@@ -83,7 +83,7 @@
       <div class="panel-body">
 
         <button id="create-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
-        <button id="start-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Start my API</button>
+        <button id="start-loopback-button" class="btn btn-lg btn-primary">Start my API</button>
         <a id="goto-my-api" href="/loopback/{{ user.name }}/explorer" class="btn btn-lg btn-primary">Go to My API</a>
         <div class="btn-group pull-right">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -106,7 +106,6 @@
                     <h4 class="modal-title" id="apiPasswordModalLabel">Loopback Password</h4>
                 </div>
                 <div id="apiPasswordModalBody" class="modal-body">
-
                 </div>
             </div>
         </div>
@@ -117,20 +116,33 @@
       </div>
       <div class="panel-body">
         <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Tour Blog</button>
-        <button id="start-blog-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Start My Tour Blog</button>
-        <a href="/wordpress/{{ user.name }}" class="btn btn-lg btn-primary">Go to My Tour Blog</a>
+        <button id="start-blog-button" type="submit" class="btn btn-lg btn-primary">Start My Tour Blog</button>
+        <a id="goto-my-blog" href="/wordpress/{{ user.name }}" class="btn btn-lg btn-primary">Go to My Tour Blog</a>
         <div class="btn-group pull-right">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
-              <li><a id="stop-blog-button" href="#">Stop my blog</a></li>
-              <li><a href="#">Show my Blog password</a></li>
+              <li><a id="stop-my-blog" href="#">Stop my blog</a></li>
+              <li><a id="show-blog-password" href="#">Show my Blog password</a></li>
             </ul>
         </div>
       </div>
       <div class="panel-footer">Create a virtual tour using your own tour blog</div>
     </div>
+    <!-- Modal -->
+     <div class="modal fade" id="blogPasswordModal" tabindex="-1" role="dialog" aria-labelledby="blogPasswordModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="blogPasswordModalLabel">Blog Password</h4>
+                </div>
+                <div id="blogPasswordModalBody" class="modal-body">
+                </div>
+            </div>
+        </div>
+     </div>
     <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title">Add a dataset<h3>
@@ -146,7 +158,7 @@
             </ul>
         </div>
       </div>
-      <div class="panel-footer">Either add a dataset of your own, or choose from a list of existing Cityscope datasets</div>
+      <div class="panel-footer">Add a dataset to your workbench to use within a Notebook or with your API. Either add a dataset of your own, or choose from a list of existing Cityscope datasets</div>
     </div>
     <div class="panel panel-default hidden">
       <div class="panel-body">

@@ -250,17 +250,27 @@ class UserWordpressAPIHandler(APIHandler):
     def get(self,name):
         user = self.find_user(name)
         wordpress_spawner = user.wordpress_spawner
-        status = wordpress_spawner.get_state()
-        print("Wordpress Status: status")
-        if status is not None:
-            if "pid" in status:
-                self.set_status(200)
-            elif "container_id" in status:
-                self.set_status(200)
+        if (self.get_arguments('credential')):
+            print("Blog get credential")
+            status = yield wordpress_spawner.get_container()
+            self.set_status(200)
+            for index,arg in enumerate(status['Args']):
+                if arg == '-credential':
+                    self.write(status['Args'][index+1])
+        else:
+            status = yield wordpress_spawner.get_state()
+            print("Wordpress Status: status")
+            if status is not None:
+                if "pid" in status:
+                    self.set_status(200)
+                elif "container_id" in status:
+                    self.set_status(200)
+                elif "container_state" in status:
+                    self.set_status(204)
+                else:
+                    self.set_status(404)
             else:
                 self.set_status(204)
-        else:
-            self.set_status(204)
 
 default_handlers = [
     (r"/api/users/([^/]+)/loopback", UserLoopbackAPIHandler),
