@@ -368,17 +368,17 @@ class LocalLoopbackProcessSpawner(DataApiSpawner):
     def setup_data(self,data):
         """Import data into loopback"""
 
-        for repository in data:
-            print("repository",repository)
-            cmd=[]
-            env=self.get_env()
-            cmd.extend(self.cmd)
-            cmd.extend(self.get_data_setup_args())
-            self.log.info("Setting up %s", ' '.join(pipes.quote(s) for s in cmd))
-            self.proc = Popen(cmd, env=env,
-                start_new_session=True, # don't forward signals
-                )
-            self.github_file_copies(repository)
+        repository = data['repository']
+        self.log.info("repository",repository)
+        cmd=[]
+        env=self.get_env()
+        cmd.extend(self.cmd)
+        cmd.extend(self.get_data_setup_args())
+        self.log.info("Setting up %s", ' '.join(pipes.quote(s) for s in cmd))
+        self.proc = Popen(cmd, env=env,
+            start_new_session=True, # don't forward signals
+            )
+        self.github_file_copies(repository)
 
     @gen.coroutine
     def start(self,credential):
