@@ -50,7 +50,7 @@ ENV PATH=/opt/conda/bin:$PATH
 ADD . /src/jupyterhub
 WORKDIR /src/jupyterhub
 
-RUN python setup.py js && pip install . && \
+RUN python setup.py js && pip install -r requirements.txt && pip install . && \
     rm -rf $PWD ~/.cache ~/.npm
 
 RUN mkdir -p /srv/jupyterhub/
@@ -59,4 +59,5 @@ EXPOSE 8000
 
 LABEL org.jupyter.service="jupyterhub"
 
-CMD ["jupyterhub"]
+ONBUILD ADD jupyterhub_config.py /srv/jupyterhub/jupyterhub_config.py
+CMD ["jupyterhub", "-f", "/srv/jupyterhub/jupyterhub_config.py"]
