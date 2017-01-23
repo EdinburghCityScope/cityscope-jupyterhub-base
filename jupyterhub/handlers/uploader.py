@@ -8,6 +8,8 @@ import os, re, unicodedata, csv, sys, time, datetime, getpass, shutil, json, mag
 from slugify import slugify
 
 __UPLOADS__ = os.path.expanduser('~') + "/datasets/"
+_GITHUB_URI = 'https://github.com/EdinburghCityScope/'
+_RAW_GITHUB_URI = 'https://raw.githubusercontent.com/EdinburghCityScope/' #{dataset_name}/master/data/{file_name}
 _MAXFILESIZE = 50 * 1024 * 1024 # 50mb
 
 ######################################
@@ -308,16 +310,17 @@ class DataImportHandler(BaseHandler):
 
 
 class PublishDatasetHandler(BaseHandler):
-    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', slug='', form_fields=None):
+    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', slug='', form_fields=None, data_published=False):
         self.messages = messages
         self.message_class = message_class
         self.error_message = error_message
         self.form_class = form_class
         self.slug = slug
         self.form_fields = form_fields
-        dcat = DCAT(dataset_name = self.slug)
-        self.dcat_data = dcat.get_dcat_file()
+        self.DCATObject = DCAT(dataset_name = self.slug)
+        self.dcat = self.DCATObject.get_dcat_file()
         self.form_fields = self.get_dcat_form()
+        self.data_published = data_published
 
 
     ###############################
@@ -365,6 +368,60 @@ class PublishDatasetHandler(BaseHandler):
                     self.messages.append(field[form_input_name]['error_text'])
                 else:
                     field[form_input_name]['css_class'] = ''
+
+        if len(self.messages) == 0:
+            self.publish_dataset()
+
+    def publish_dataset(self):
+        github_link = _GITHUB_URI + get_user_uun() + '/' + str(self.slug)
+        print('github_link = {0}'.format(github_link))
+        download_url = _RAW_GITHUB_URI +  get_user_uun() + '/' + str(self.slug) + '/master/data/'
+        try:
+            print('self.dcat = '.format(self.dcat))
+        except Exception as err:
+            print('self.dcat does not exist? {0}'.format(err))#assign values
+
+
+
+        self.dcat['unique_id'] = str(github_link)
+        self.dcat['title'] = self.form_fields['title']['value']
+        self.dcat['description'] = self.form_fields['description']['value']
+        self.dcat['landingPage'] = str(github_link)
+        if self.dcat['issued'] == '' or self.dcat['issued'] == None:
+            self.dcat['issued'] = json_date_today()
+        self.dcat['publisher']['name'] = self.form_fields['publisher']['value']
+        self.dcat['publisher']['mbox'] = self.form_fields['email']['value']
+        languages = self.form_fields['language']['value'].split(',')
+        self.dcat['language'] = [language.strip() for language in languages]
+        keyword_list = self.form_fields['keywords']['value'].split(',')
+        self.dcat['keyword'] = [keyword.strip() for keyword in keyword_list]
+
+        distribution_list = []
+        for item in self.form_fields['distribution']:
+            file_info = get_dcat_distribution_object() # returns a dictionary
+            file_info['title'] = item['title']['value']
+            file_info['description'] = item['description']['value']
+            file_info['mediaType'] = item['mimetype']
+            file_info['downloadURL'] = download_url + item['file_name']
+            file_info['license'] = item['license']['value']
+            distribution_list.append(file_info)
+
+        self.dcat['distribution'] = distribution_list
+
+        print('new dcat file = {0}'.format(self.dcat))
+        newDCAT = DCAT(
+            dataset_name = self.slug,
+            unique_id = str(github_link),
+            title = self.form_fields['title']['value'],
+            description = self.form_fields['description']['value'],
+            landingPage = str(github_link),
+            issued = self.dcat['issued'],
+            publisher = self.dcat['publisher'],
+            language = [language.strip() for language in languages],
+            keyword = [keyword.strip() for keyword in keyword_list],
+            distribution = distribution_list,
+        )
+        newDCAT.write_dcat_file()
 
     def get_dcat_form(self):
         ''' form inputs need to be generated dynamically as we don't know
@@ -435,7 +492,7 @@ class PublishDatasetHandler(BaseHandler):
                     'css_class':'',
                     'value':self.get_form_value('language'),
                     'help_text':'',
-                    'error_text': 'Please provide a language code for your dataset}'
+                    'error_text': 'Please provide a language code for your dataset'
                     }, #https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
             'publisher':{
                     'required':True,
@@ -467,7 +524,7 @@ class PublishDatasetHandler(BaseHandler):
         #print('the value for {0}] was:{1}'.format(input_name,the_value))
         if the_value == None:
             try:
-                distribution_data = self.dcat_data['distribution']
+                distribution_data = self.dcat['distribution']
             except:
                 distribution_data = get_dcat_distribution_object()
             for file_details in distribution_data:
@@ -492,14 +549,16 @@ class PublishDatasetHandler(BaseHandler):
         if the_value == None:
             try:
                 if input_name == 'keywords':
-                    keyword_list = self.dcat_data['keyword']
+                    keyword_list = self.dcat['keyword']
                     the_value = ','.join(keyword_list)
                 elif input_name == 'publisher':
-                    the_value = self.dcat_data['publisher']['name']
+                    the_value = self.dcat['publisher']['name']
                 elif input_name == 'email':
-                    the_value = self.dcat_data['publisher']['mbox']
+                    the_value = self.dcat['publisher']['mbox']
+                elif input_name == 'language':
+                    the_value = 'en'
                 else:
-                    the_value = self.dcat_data[input_name]
+                    the_value = self.dcat[input_name]
             except:
                     the_value = ''
         if the_value == None:
@@ -584,9 +643,10 @@ class DCAT:
     def __init__(   self,
                     dataset_dir='',
                     dataset_name='',
-                    id='',
+                    unique_id='',
                     title='',
                     description='',
+                    landingPage='',
                     issued='',
                     modified=json_date_today(),
                     language=['en'],
@@ -597,9 +657,10 @@ class DCAT:
                     ):
         self.dataset_dir = dataset_dir
         self.dataset_name = dataset_name
-        self.id = id #id='https://github.com/EdinburghCityScope/{uun}/{dataset_name}',
+        self.unique_id = unique_id #id='https://github.com/EdinburghCityScope/{uun}/{dataset_name}',
         self.title = title
         self.description = description
+        self.landingPage = landingPage
         self.issued = issued
         self.modified = modified
         self.language = language
@@ -628,7 +689,11 @@ class DCAT:
         '''reads (or creates) a dcat.json file into a Python object based on a supplied file path'''
         print('getting dcat file')
         if os.path.isfile(self.dcat_file_path):
-            data = read_json_file(self.dcat_file_path)
+            file_data = read_json_file(self.dcat_file_path)
+            if file_data != '':
+                data = file_data
+            else:
+                data = python_to_json(self)
             #print('Data read from {0} file: {1}'.format(self.dcat_file_path,data))
         else:
             data = python_to_json(self)
@@ -640,6 +705,27 @@ class DCAT:
 
     def write_dcat_file(self):
         print('writing dcat file')
+        file_content = {
+            "id":self.unique_id,
+            "title":self.title,
+            "description":self.description,
+            "issued":self.issued,
+            "modified":self.modified,
+            "language":self.language,
+            "publisher":self.publisher,
+            "spatial":self.spatial,
+            "keyword":self.keyword,
+            "distribution":self.distribution
+        }
+        file_to_write = self.dcat_file_path
+        try:
+            fh = open(file_to_write, 'wb')
+            fh.write(python_to_json(file_content))
+            fh.close()
+            self.published = True
+        except Exception as err:
+            print('Unable to publish file {0}. Reason was:{1}'.format(file_to_write, err))
+            self.published = False
 
 
 class HelloHandler(BaseHandler):
