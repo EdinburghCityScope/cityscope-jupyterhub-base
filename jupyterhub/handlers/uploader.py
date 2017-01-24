@@ -39,6 +39,10 @@ def list_data_files(dataset_dir):
     '''lists uploaded file details from the
     /home/{user}/datasets/{dataset_name}/data/ directory.
     '''
+    if not dataset_dir:
+        return []
+
+
     dataset_files_dir = dataset_dir + 'data/'
     dataset_files = [f for f in os.listdir(dataset_files_dir) if os.path.isfile(os.path.join(dataset_files_dir, f))]
 
@@ -104,6 +108,9 @@ def get_uploads_dir():
 
 def get_dataset_dir(dataset_name):
     '''gets the file path of a dataset by dataset name and user path'''
+    if dataset_name == None or dataset_name == '':
+        return ''
+
     dataset_dir = get_uploads_dir() + dataset_name + '/'
     if not os.path.isdir(dataset_dir):
         try:
@@ -125,7 +132,7 @@ def python_to_json(object):
     return object.__dict__
 
 def json_date_today():
-    return json.dumps(datetime.datetime.now().strftime('%Y-%m-%d'))
+    return datetime.datetime.now().strftime('%Y-%m-%d')
 
 def read_json_file(fullpath):
     d=''
@@ -310,17 +317,18 @@ class DataImportHandler(BaseHandler):
 
 
 class PublishDatasetHandler(BaseHandler):
-    def initialize(self, messages = [], message_class = '', error_message = [], form_class = '', slug='', form_fields=None, data_published=False):
-        self.messages = messages
-        self.message_class = message_class
-        self.error_message = error_message
-        self.form_class = form_class
+    def initialize(self, slug='', form_fields=None, data_published=False):
+        self.messages = []
+        self.message_class = ''
+        self.error_message = []
+        self.form_class = ''
         self.slug = slug
         self.form_fields = form_fields
         self.DCATObject = DCAT(dataset_name = self.slug)
         self.dcat = self.DCATObject.get_dcat_file()
         self.form_fields = self.get_dcat_form()
-        self.data_published = data_published
+        self.data_published = False
+        self.form_posted = False
 
 
     ###############################
@@ -341,6 +349,7 @@ class PublishDatasetHandler(BaseHandler):
             # eg form.title will be: self.get_body_argument("title")
         '''
         self.initialize(slug=slug)
+        self.form_posted = True
         print("handling form post")
         self.validate_form()
         self.render_page()
@@ -376,8 +385,9 @@ class PublishDatasetHandler(BaseHandler):
         github_link = _GITHUB_URI + get_user_uun() + '/' + str(self.slug)
         print('github_link = {0}'.format(github_link))
         download_url = _RAW_GITHUB_URI +  get_user_uun() + '/' + str(self.slug) + '/master/data/'
+
         try:
-            print('self.dcat = '.format(self.dcat))
+            print('self.dcat[title] = '.format(self.dcat['title']))
         except Exception as err:
             print('self.dcat does not exist? {0}'.format(err))#assign values
 
@@ -567,13 +577,14 @@ class PublishDatasetHandler(BaseHandler):
         return the_value
 
     def render_page(self):
-        if len(self.messages) > 0:
-            self.message_class = 'bg-danger'
-            successful = False
-        else:
-            self.message_class = 'bg-success'
-            successful = True
-            self.messages.append('Thank you. Validation successful.')
+        successful = True
+        if self.form_posted == True:
+            if len(self.messages) > 0:
+                self.message_class = 'bg-danger'
+                successful = False
+            else:
+                self.message_class = 'bg-success'
+                self.messages.append('Thank you. Validation successful.')
 
         html = self.render_template('publish_dataset.html',
         user = get_user_uun(),
@@ -719,8 +730,8 @@ class DCAT:
         }
         file_to_write = self.dcat_file_path
         try:
-            fh = open(file_to_write, 'wb')
-            fh.write(python_to_json(file_content))
+            fh = open(file_to_write, 'w')
+            json.dump(file_content, fh)
             fh.close()
             self.published = True
         except Exception as err:
