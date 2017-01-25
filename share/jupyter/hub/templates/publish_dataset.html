@@ -18,7 +18,8 @@
     </div>
     <div class="clearfix">&nbsp;</div>
     {% endif %}
-<h2>Publish Dataset: {{dataset_name}}</h2>
+<h2>Creating files for publication for dataset: {{dataset_name}}</h2>
+<p>This form creates the required Digital Catalogue (data.json) file, based on the contents of your dataset, and a default "Read Me" (README.md) file in the root of your dataset. These files are needed for publication to GitHub. Please note - the README.md file is never overwritten if it already exists but you can edit it manually.</p>
 <p>If your data is complete and ready to be published as an Open Dataset on the <a href="https://github.com/EdinburghCityScope" target="_blank">EdinburghCityScope Github repository</a> (link opens in a new window) then please complete the details in the form below.<br/>
     The first section is concerned with the dataset as a whole, the second section is looking for information about the inidividual data files contained in the dataset.</br>
     Be aware that publishing your dataset as an opendata repository has a legal implication so please check <a href="#guidance">the brief guidance notes below</a></<br/>
@@ -111,6 +112,12 @@
             <li>data should be provided without limitations based on user identity or intent</li>
             <li>free of restriction on use or redistribution in its licensing conditions</li>
             <li>should be anonymised so that no individual can be identified</li>
+            <li>use a non-proprietary format (e.g. <abbr title="Comma Separated Value">csv</abbr> instead of Excel)</li>
+            <li>data in the repository should be clearly documented to ease understanding</li>
+            <li>people should be able to easily contribute new data, or request amendments to existing open data</li>
+            <li>data owners, creators should be clearly stated</li>
+            <li>data provenance should be clearly stated</li>
+
         </ul>
         <h4>Open Data should NOT ...</h4>
         <ul>

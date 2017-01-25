@@ -26,13 +26,15 @@ def list_datasets():
     dataset_dir = get_uploads_dir()
     dir_names = os.listdir(dataset_dir)
 
+
     datasets = []
     for dir_name in dir_names:
         fullpath = dataset_dir + dir_name
         if os.path.isdir(fullpath):
+            dcat_and_readme = are_dcat_and_readme_present(fullpath)
             modified    = os.path.getmtime(fullpath)
             user_tree = get_user_tree() + dir_name + '/'
-            datasets.append({'file_name':dir_name, 'last_modified':time.ctime(modified), 'file_link':user_tree})
+            datasets.append({'file_name':dir_name, 'last_modified':time.ctime(modified), 'file_link':user_tree, 'dcat_and_readme':dcat_and_readme})
     return datasets
 
 def list_data_files(dataset_dir):
@@ -61,6 +63,16 @@ def list_data_files(dataset_dir):
             'last_modified':time.ctime(modified),
         })
     return datafiles
+
+def are_dcat_and_readme_present(dataset_dir):
+    files_exist = False
+    readme_file = dataset_dir + '/README.md'
+    dcat_file = dataset_dir + '/data.json'
+
+    if os.path.isfile(readme_file) and os.path.isfile(dcat_file):
+        files_exist = True
+
+    return files_exist
 
 def get_mime_type(file_extension, fullpath):
     mime_type = None
@@ -577,16 +589,22 @@ class PublishDatasetHandler(BaseHandler):
         return the_value
 
     def render_page(self):
+        page_template = 'publish_dataset.html'
         successful = True
         if self.form_posted == True:
             if len(self.messages) > 0:
                 self.message_class = 'bg-danger'
                 successful = False
             else:
-                self.message_class = 'bg-success'
-                self.messages.append('Thank you. Validation successful.')
+                line1 = '<div class="panel panel-default">'
+                line2 = '<div class="bg-success" style="padding:5px;"><p><strong>Success</strong></p>'
+                line3 = '<ul><li>Thank you. Your dataset should be ready to publish to GitHub.</li></ul></div>'
+                line4 = '<p><a href="/hub/add-dataset">Please return to the list datasets page.</a></p></div>'
+                html = line1 + line2 + line3 + line4
+                self.finish(html)
 
-        html = self.render_template('publish_dataset.html',
+
+        html = self.render_template(page_template,
         user = get_user_uun(),
         messages = self.messages,
         error_message = self.error_message,
@@ -726,17 +744,29 @@ class DCAT:
             "publisher":self.publisher,
             "spatial":self.spatial,
             "keyword":self.keyword,
-            "distribution":self.distribution
+            "distribution":self.distribution,
         }
         file_to_write = self.dcat_file_path
         try:
             fh = open(file_to_write, 'w')
-            json.dump(file_content, fh)
+            json.dump(file_content, fh, sort_keys=True, indent=4, ensure_ascii=False)
             fh.close()
             self.published = True
         except Exception as err:
             print('Unable to publish file {0}. Reason was:{1}'.format(file_to_write, err))
             self.published = False
+
+        readme_file = self.dataset_dir + 'README.md'
+        if self.published == True and not os.path.isfile(readme_file):
+            readme_title = '# {0}'.format(self.title) + ('\n') + "-"*len(self.title) + "--" + ('\n')
+            readme_description = '{0}'.format(self.description)+ ('\n')
+            readme_content = readme_title + readme_description
+            try:
+                fh = open(readme_file, 'w+')
+                fh.write(readme_content)
+                fh.close()
+            except Exception as err:
+                print('Unable to create README.md file. Reason was:{0}'.format(err))
 
 
 class HelloHandler(BaseHandler):

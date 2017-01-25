@@ -11,7 +11,7 @@
                         <th>Delete</th>
                         <th>Date</th>
                         <th>View/Edit data</th>
-                        <th>Publish<th>
+                        <th>Format for Publishing<th>
                     </tr>
                 </thead>
                 <tbody>
@@ -30,12 +30,21 @@
                                 View/Edit
                             </a>
                         </td>
-                        <td><a href="{{base_url}}publish-dataset/{{dataset['file_name']}}"
+                        <td>{% if dataset['dcat_and_readme'] %}
+                            <a href="{{base_url}}publish-dataset/{{dataset['file_name']}}"
+                                class="btn btn-success"
+                                role="button" id="PublishDatasetButton"
+                                alt="Alter existing files needed to publish this as an OpenData repository on GitHub ">
+                                Update publishing files
+                            </a>
+                            {% else %}
+                            <a href="{{base_url}}publish-dataset/{{dataset['file_name']}}"
                                 class="btn btn-primary"
                                 role="button" id="PublishDatasetButton"
-                                alt="Publish this as an OpenData repository on GitHub">
-                                Publish
+                                alt="Create files needed to publish this as an OpenData repository on GitHub">
+                                Create publishing files
                             </a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
