@@ -1,4 +1,4 @@
-from tornado import web, gen
+from tornado import web, gen, escape
 
 from .. import orm
 from ..utils import admin_only, url_path_join
@@ -395,13 +395,13 @@ class PublishDatasetHandler(BaseHandler):
 
     def publish_dataset(self):
         github_link = _GITHUB_URI + get_user_uun() + '/' + str(self.slug)
-        print('github_link = {0}'.format(github_link))
+        # print('github_link = {0}'.format(github_link))
         download_url = _RAW_GITHUB_URI +  get_user_uun() + '/' + str(self.slug) + '/master/data/'
 
-        try:
-            print('self.dcat[title] = '.format(self.dcat['title']))
-        except Exception as err:
-            print('self.dcat does not exist? {0}'.format(err))#assign values
+        #try:
+        #    print('self.dcat[title] = '.format(self.dcat['title']))
+        #except Exception as err:
+        #    print('self.dcat does not exist? {0}'.format(err))#assign values
 
 
 
@@ -430,7 +430,7 @@ class PublishDatasetHandler(BaseHandler):
 
         self.dcat['distribution'] = distribution_list
 
-        print('new dcat file = {0}'.format(self.dcat))
+        # print('new dcat file = {0}'.format(self.dcat))
         newDCAT = DCAT(
             dataset_name = self.slug,
             unique_id = str(github_link),
@@ -590,18 +590,18 @@ class PublishDatasetHandler(BaseHandler):
 
     def render_page(self):
         page_template = 'publish_dataset.html'
-        successful = True
+        show_form = True
         if self.form_posted == True:
             if len(self.messages) > 0:
                 self.message_class = 'bg-danger'
-                successful = False
+
             else:
-                line1 = '<div class="panel panel-default">'
-                line2 = '<div class="bg-success" style="padding:5px;"><p><strong>Success</strong></p>'
-                line3 = '<ul><li>Thank you. Your dataset should be ready to publish to GitHub.</li></ul></div>'
-                line4 = '<p><a href="/hub/add-dataset">Please return to the list datasets page.</a></p></div>'
-                html = line1 + line2 + line3 + line4
-                self.finish(html)
+                self.message_class = 'bg-success'
+                show_form = False
+                dataset_link = get_user_tree() + self.slug + '/'
+                self.messages.append('Thank you. Your dataset should be ready to publish to GitHub.')
+                self.messages.append('<a href="/hub/add-dataset">Please return to the list datasets page.</a>')
+                self.messages.append('<a href="{0}">View all the files in your dataset</a>'.format(dataset_link))
 
 
         html = self.render_template(page_template,
@@ -609,7 +609,7 @@ class PublishDatasetHandler(BaseHandler):
         messages = self.messages,
         error_message = self.error_message,
         message_class = self.message_class,
-        successful = successful,
+        show_form = show_form,
         form_class = self.form_class,
         dataset_name = self.slug,
         datafiles = list_data_files(get_dataset_dir(self.slug)),
@@ -710,13 +710,13 @@ class DCAT:
         self.dcat_file_path = self.dataset_dir + 'data.json'
 
         #print(python_to_json(self))
-        if os.path.isdir(self.data_path):
-            print('we have a valid dataset_dir: {0}'.format(self.data_path))
+        #if os.path.isdir(self.data_path):
+            #print('we have a valid dataset_dir: {0}'.format(self.data_path))
 
 
     def get_dcat_file(self):
         '''reads (or creates) a dcat.json file into a Python object based on a supplied file path'''
-        print('getting dcat file')
+        #print('getting dcat file')
         if os.path.isfile(self.dcat_file_path):
             file_data = read_json_file(self.dcat_file_path)
             if file_data != '':
