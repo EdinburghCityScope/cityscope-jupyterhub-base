@@ -6,6 +6,7 @@
 import re
 from datetime import timedelta
 from http.client import responses
+from urllib.parse import urlparse
 
 from jinja2 import TemplateNotFound
 
@@ -68,12 +69,19 @@ class BaseHandler(RequestHandler):
         return self.settings.setdefault('users', {})
 
     @property
+    def services(self):
+        return self.settings.setdefault('services', {})
+    @property
     def hub(self):
         return self.settings['hub']
 
     @property
     def proxy(self):
         return self.settings['proxy']
+
+    @property
+    def statsd(self):
+        return self.settings['statsd']
 
     @property
     def authenticator(self):
@@ -140,7 +148,7 @@ class BaseHandler(RequestHandler):
         if orm_token is None:
             return None
         else:
-            return orm_token.user
+            return orm_token.user or orm_token.service
 
     def _user_for_cookie(self, cookie_name, cookie_value=None):
         """Get the User for a given cookie, if there is one"""
@@ -154,14 +162,14 @@ class BaseHandler(RequestHandler):
 
         if cookie_id is None:
             if self.get_cookie(cookie_name):
-                self.log.warn("Invalid or expired cookie token")
+                self.log.warning("Invalid or expired cookie token")
                 clear()
             return
         cookie_id = cookie_id.decode('utf8', 'replace')
         u = self.db.query(orm.User).filter(orm.User.cookie_id==cookie_id).first()
         user = self._user_from_orm(u)
         if user is None:
-            self.log.warn("Invalid cookie token")
+            self.log.warning("Invalid cookie token")
             # have cookie, but it's not valid. Clear it and start over.
             clear()
         return user
@@ -200,6 +208,7 @@ class BaseHandler(RequestHandler):
             self.db.add(u)
             self.db.commit()
             user = self._user_from_orm(u)
+            self.authenticator.add_user(user)
         return user
 
     def clear_login_cookie(self, name=None):
@@ -213,6 +222,7 @@ class BaseHandler(RequestHandler):
         if user and user.server:
             self.clear_cookie(user.server.cookie_name, path=user.server.base_url, **kwargs)
         self.clear_cookie(self.hub.server.cookie_name, path=self.hub.server.base_url, **kwargs)
+        self.clear_cookie('jupyterhub-services', path=url_path_join(self.base_url, 'services'))
 
     def _set_user_cookie(self, user, server):
         # tornado <4.2 have a bug that consider secure==True as soon as
@@ -231,6 +241,13 @@ class BaseHandler(RequestHandler):
             **kwargs
         )
 
+    def set_service_cookie(self, user):
+        """set the login cookie for services"""
+        self._set_user_cookie(user, orm.Server(
+            cookie_name='jupyterhub-services',
+            base_url=url_path_join(self.base_url, 'services')
+        ))
+
     def set_server_cookie(self, user):
         """set the login cookie for the single-user server"""
         self._set_user_cookie(user, user.server)
@@ -248,6 +265,10 @@ class BaseHandler(RequestHandler):
         # create and set a new cookie token for the single-user server
         if user.server:
             self.set_server_cookie(user)
+
+        # set single cookie for services
+        if self.db.query(orm.Service).filter(orm.Service.server != None).first():
+            self.set_service_cookie(user)
 
         # create and set a new cookie token for the hub
         if not self.get_current_user_cookie():
@@ -303,16 +324,20 @@ class BaseHandler(RequestHandler):
                 return
             toc = IOLoop.current().time()
             self.log.info("User %s server took %.3f seconds to start", user.name, toc-tic)
+            self.statsd.timing('spawner.success', (toc - tic) * 1000)
             yield self.proxy.add_user(user)
             user.spawner.add_poll_callback(self.user_stopped, user)
 
         try:
             yield gen.with_timeout(timedelta(seconds=self.slow_spawn_timeout), f)
         except gen.TimeoutError:
-            if user.spawn_pending:
+            # waiting_for_response indicates server process has started,
+            # but is yet to become responsive.
+            if not user.waiting_for_response:
                 # still in Spawner.start, which is taking a long time
-                # we shouldn't poll while spawn_pending is True
-                self.log.warn("User %s server is slow to start", user.name)
+                # we shouldn't poll while spawn is incomplete.
+                self.log.warning("User %s's server is slow to start (timeout=%s)",
+                    user.name, self.slow_spawn_timeout)
                 # schedule finish for when the user finishes spawning
                 IOLoop.current().add_future(f, finish_user_spawn)
             else:
@@ -322,10 +347,14 @@ class BaseHandler(RequestHandler):
                 if status is None:
                     # hit timeout, but server's running. Hope that it'll show up soon enough,
                     # though it's possible that it started at the wrong URL
-                    self.log.warn("User %s server is slow to become responsive", user.name)
+                    self.log.warning("User %s's server is slow to become responsive (timeout=%s)",
+                        user.name, self.slow_spawn_timeout)
+                    self.log.debug("Expecting server for %s at: %s", user.name, user.server.url)
                     # schedule finish for when the user finishes spawning
                     IOLoop.current().add_future(f, finish_user_spawn)
                 else:
+                    toc = IOLoop.current().time()
+                    self.statsd.timing('spawner.failure', (toc - tic) * 1000)
                     raise web.HTTPError(500, "Spawner failed to start [status=%s]" % status)
         else:
             yield finish_user_spawn()
@@ -336,7 +365,7 @@ class BaseHandler(RequestHandler):
         status = yield user.spawner.poll()
         if status is None:
             status = 'unknown'
-        self.log.warn("User %s server stopped, with exit code: %s",
+        self.log.warning("User %s server stopped, with exit code: %s",
             user.name, status,
         )
         yield self.proxy.delete_user(user)
@@ -367,7 +396,7 @@ class BaseHandler(RequestHandler):
         except gen.TimeoutError:
             if user.stop_pending:
                 # hit timeout, but stop is still pending
-                self.log.warn("User %s server is slow to stop", user.name)
+                self.log.warning("User %s server is slow to stop", user.name)
                 # schedule finish for when the server finishes stopping
                 IOLoop.current().add_future(f, finish_stop)
             else:
@@ -406,6 +435,7 @@ class BaseHandler(RequestHandler):
         """render custom error pages"""
         exc_info = kwargs.get('exc_info')
         message = ''
+        exception = None
         status_message = responses.get(status_code, 'Unknown HTTP Error')
         if exc_info:
             exception = exc_info[1]
@@ -451,7 +481,11 @@ class PrefixRedirectHandler(BaseHandler):
     Redirects /foo to /prefix/foo, etc.
     """
     def get(self):
-        path = self.request.uri[len(self.base_url):]
+        uri = self.request.uri
+        if uri.startswith(self.base_url):
+            path = self.request.uri[len(self.base_url):]
+        else:
+            path = self.request.path
         self.redirect(url_path_join(
             self.hub.server.base_url, path,
         ), permanent=False)
@@ -462,18 +496,35 @@ class UserSpawnHandler(BaseHandler):
 
     If logged in, spawn a single-user server and redirect request.
     If a user, alice, requests /user/bob/notebooks/mynotebook.ipynb,
-    redirect her to /user/alice/notebooks/mynotebook.ipynb, which should
-    in turn call this function.
+    she will be redirected to /hub/user/bob/notebooks/mynotebook.ipynb,
+    which will be handled by this handler,
+    which will in turn send her to /user/alice/notebooks/mynotebook.ipynb.
     """
 
     @gen.coroutine
     def get(self, name, user_path):
         current_user = self.get_current_user()
         if current_user and current_user.name == name:
+            # If people visit /user/:name directly on the Hub,
+            # the redirects will just loop, because the proxy is bypassed.
+            # Try to check for that and warn,
+            # though the user-facing behavior is unchainged
+            host_info = urlparse(self.request.full_url())
+            port = host_info.port
+            if not port:
+                port = 443 if host_info.scheme == 'https' else 80
+            if port != self.proxy.public_server.port and port == self.hub.server.port:
+                self.log.warning("""
+                    Detected possible direct connection to Hub's private ip: %s, bypassing proxy.
+                    This will result in a redirect loop.
+                    Make sure to connect to the proxied public URL %s
+                    """, self.request.full_url(), self.proxy.public_server.url)
+
             # logged in as correct user, spawn the server
             if current_user.spawner:
                 if current_user.spawn_pending:
                     # spawn has started, but not finished
+                    self.statsd.incr('redirects.user_spawn_pending', 1)
                     html = self.render_template("spawn_pending.html", user=current_user)
                     self.finish(html)
                     return
@@ -493,13 +544,15 @@ class UserSpawnHandler(BaseHandler):
             if self.subdomain_host:
                 target = current_user.host + target
             self.redirect(target)
+            self.statsd.incr('redirects.user_after_login')
         elif current_user:
             # logged in as a different user, redirect
-            target = url_path_join(self.base_url, 'user', current_user.name,
-                                   user_path or '')
+            self.statsd.incr('redirects.user_to_user', 1)
+            target = url_path_join(current_user.url, user_path or '')
             self.redirect(target)
         else:
             # not logged in, clear any cookies and reload
+            self.statsd.incr('redirects.user_to_login', 1)
             self.clear_login_cookie()
             self.redirect(url_concat(
                 self.settings['login_url'],
@@ -507,15 +560,39 @@ class UserSpawnHandler(BaseHandler):
             ))
 
 
+class UserRedirectHandler(BaseHandler):
+    """Redirect requests to user servers.
+    
+    Allows public linking to "this file on your server".
+    
+    /user-redirect/path/to/foo will redirect to /user/:name/path/to/foo
+    
+    If the user is not logged in, send to login URL, redirecting back here.
+    
+    .. versionadded:: 0.7
+    """
+    @web.authenticated
+    def get(self, path):
+        user = self.get_current_user()
+        url = url_path_join(user.url, path)
+        self.redirect(url)
+
+
 class CSPReportHandler(BaseHandler):
     '''Accepts a content security policy violation report'''
     @web.authenticated
     def post(self):
         '''Log a content security policy violation report'''
-        self.log.warn("Content security violation: %s",
-                      self.request.body.decode('utf8', 'replace'))
+        self.log.warning(
+            "Content security violation: %s",
+            self.request.body.decode('utf8', 'replace')
+        )
+        # Report it to statsd as well
+        self.statsd.incr('csp_report')
+
 
 default_handlers = [
     (r'/user/([^/]+)(/.*)?', UserSpawnHandler),
+    (r'/user-redirect/(.*)?', UserRedirectHandler),
     (r'/security/csp-report', CSPReportHandler),
 ]

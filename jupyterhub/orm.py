@@ -20,7 +20,7 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.expression import bindparam
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Table
 
 from .utils import (
     random_port, url_path_join, wait_for_server, wait_for_http_server,
@@ -153,6 +153,35 @@ class Proxy(Base):
         return client.fetch(req)
 
     @gen.coroutine
+    def add_service(self, service, client=None):
+        """Add a service's server to the proxy table."""
+        if not service.server:
+            raise RuntimeError(
+                "Service %s does not have an http endpoint to add to the proxy.", service.name)
+
+        self.log.info("Adding service %s to proxy %s => %s",
+            service.name, service.proxy_path, service.server.host,
+        )
+
+        yield self.api_request(service.proxy_path,
+            method='POST',
+            body=dict(
+                target=service.server.host,
+                service=service.name,
+            ),
+            client=client,
+        )
+
+    @gen.coroutine
+    def delete_service(self, service, client=None):
+        """Remove a service's server from the proxy table."""
+        self.log.info("Removing service %s from proxy", service.name)
+        yield self.api_request(service.proxy_path,
+            method='DELETE',
+            client=client,
+        )
+
+    @gen.coroutine
     def add_user(self, user, client=None):
         """Add a user's server to the proxy table."""
         self.log.info("Adding user %s to proxy %s => %s",
@@ -174,7 +203,7 @@ class Proxy(Base):
 
     @gen.coroutine
     def delete_user(self, user, client=None):
-        """Remove a user's server to the proxy table."""
+        """Remove a user's server from the proxy table."""
         self.log.info("Removing user %s from proxy", user.name)
         yield self.api_request(user.proxy_path,
             method='DELETE',
@@ -182,10 +211,20 @@ class Proxy(Base):
         )
 
     @gen.coroutine
-    def get_routes(self, client=None):
-        """Fetch the proxy's routes"""
-        resp = yield self.api_request('', client=client)
-        return json.loads(resp.body.decode('utf8', 'replace'))
+    def add_all_services(self, service_dict):
+        """Update the proxy table from the database.
+
+        Used when loading up a new proxy.
+        """
+        db = inspect(self).session
+        futures = []
+        for orm_service in db.query(Service):
+            service = service_dict[orm_service.name]
+            if service.server:
+                futures.append(self.add_service(service))
+        # wait after submitting them all
+        for f in futures:
+            yield f
 
     @gen.coroutine
     def add_all_users(self, user_dict):
@@ -204,27 +243,44 @@ class Proxy(Base):
             yield f
 
     @gen.coroutine
-    def check_routes(self, user_dict, routes=None):
+    def get_routes(self, client=None):
+        """Fetch the proxy's routes"""
+        resp = yield self.api_request('', client=client)
+        return json.loads(resp.body.decode('utf8', 'replace'))
+
+    @gen.coroutine
+    def check_routes(self, user_dict, service_dict, routes=None):
         """Check that all users are properly routed on the proxy"""
         if not routes:
             routes = yield self.get_routes()
 
-        have_routes = { r['user'] for r in routes.values() if 'user' in r }
+        user_routes = { r['user'] for r in routes.values() if 'user' in r }
         futures = []
         db = inspect(self).session
-        for orm_user in db.query(User).filter(User.server != None):
+        for orm_user in db.query(User):
             user = user_dict[orm_user]
-            if not user.running:
-                # Don't add users to the proxy that haven't finished starting
-                continue
-            if user.server is None:
+            if user.running:
+                if user.name not in user_routes:
+                    self.log.warning("Adding missing route for %s (%s)", user.name, user.server)
+                    futures.append(self.add_user(user))
+            else:
+                # User not running, make sure it's not in the table
+                if user.name in user_routes:
+                    self.log.warning("Removing route for not running %s", user.name)
+                    futures.append(self.delete_user(user))
+        
+        # check service routes
+        service_routes = { r['service'] for r in routes.values() if 'service' in r }
+        for orm_service in db.query(Service).filter(Service.server != None):
+            service = service_dict[orm_service.name]
+            if service.server is None:
                 # This should never be True, but seems to be on rare occasion.
                 # catch filter bug, either in sqlalchemy or my understanding of its behavior
-                self.log.error("User %s has no server, but wasn't filtered out.", user)
+                self.log.error("Service %s has no server, but wasn't filtered out.", service)
                 continue
-            if user.name not in have_routes:
-                self.log.warning("Adding missing route for %s (%s)", user.name, user.server)
-                futures.append(self.add_user(user))
+            if service.name not in service_routes:
+                self.log.warning("Adding missing route for %s (%s)", service.name, service.server)
+                futures.append(self.add_service(service))
         for f in futures:
             yield f
 
@@ -258,6 +314,32 @@ class Hub(Base):
             return "<%s [unconfigured]>" % self.__class__.__name__
 
 
+# user:group many:many mapping table
+user_group_map = Table('user_group_map', Base.metadata,
+    Column('user_id', ForeignKey('users.id'), primary_key=True),
+    Column('group_id', ForeignKey('groups.id'), primary_key=True),
+)
+
+class Group(Base):
+    """User Groups"""
+    __tablename__ = 'groups'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(Unicode(1023), unique=True)
+    users = relationship('User', secondary='user_group_map', back_populates='groups')
+    
+    def __repr__(self):
+        return "<%s %s (%i users)>" % (
+            self.__class__.__name__, self.name, len(self.users)
+        )
+    @classmethod
+    def find(cls, db, name):
+        """Find a group by name.
+
+        Returns None if not found.
+        """
+        return db.query(cls).filter(cls.name==name).first()
+
+
 class User(Base):
     """The User table
 
@@ -276,16 +358,22 @@ class User(Base):
     """
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(Unicode(1023))
+    name = Column(Unicode(1023), unique=True)
     # should we allow multiple servers per user?
-    _server_id = Column(Integer, ForeignKey('servers.id'))
+    _server_id = Column(Integer, ForeignKey('servers.id', ondelete="SET NULL"))
     server = relationship(Server, primaryjoin=_server_id == Server.id)
     admin = Column(Boolean, default=False)
     last_activity = Column(DateTime, default=datetime.utcnow)
 
     api_tokens = relationship("APIToken", backref="user")
     cookie_id = Column(Unicode(1023), default=new_token)
+    # User.state is actually Spawner state
+    # We will need to figure something else out if/when we have multiple spawners per user
     state = Column(JSONDict)
+    # Authenticators can store their state here:
+    auth_state = Column(JSONDict)
+    # group mapping
+    groups = relationship('Group', secondary='user_group_map', back_populates='users')
 
     other_user_cookies = set([])
 
@@ -303,16 +391,12 @@ class User(Base):
                 name=self.name,
             )
 
-    def new_api_token(self):
-        """Create a new API token"""
-        assert self.id is not None
-        db = inspect(self).session
-        token = new_token()
-        orm_token = APIToken(user_id=self.id)
-        orm_token.token = token
-        db.add(orm_token)
-        db.commit()
-        return token
+    def new_api_token(self, token=None):
+        """Create a new API token
+        
+        If `token` is given, load that token.
+        """
+        return APIToken.new(token=token, user=self)
 
     @classmethod
     def find(cls, db, name):
@@ -322,13 +406,67 @@ class User(Base):
         """
         return db.query(cls).filter(cls.name==name).first()
 
+
+class Service(Base):
+    """A service run with JupyterHub
+
+    A service is similar to a User without a Spawner.
+    A service can have API tokens for accessing the Hub's API
+
+    It has:
+
+    - name
+    - admin
+    - api tokens
+    - server (if proxied http endpoint)
+
+    In addition to what it has in common with users, a Service has extra info:
+
+    - pid: the process id (if managed)
+
+    """
+    __tablename__ = 'services'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # common user interface:
+    name = Column(Unicode(1023), unique=True)
+    admin = Column(Boolean, default=False)
+
+    api_tokens = relationship("APIToken", backref="service")
+
+    # service-specific interface
+    _server_id = Column(Integer, ForeignKey('servers.id'))
+    server = relationship(Server, primaryjoin=_server_id == Server.id)
+    pid = Column(Integer)
+
+    def new_api_token(self, token=None):
+        """Create a new API token
+
+        If `token` is given, load that token.
+        """
+        return APIToken.new(token=token, service=self)
+    
+    @classmethod
+    def find(cls, db, name):
+        """Find a service by name.
+
+        Returns None if not found.
+        """
+        return db.query(cls).filter(cls.name==name).first()
+
+
 class APIToken(Base):
     """An API token"""
     __tablename__ = 'api_tokens'
-
+    
+    # _constraint = ForeignKeyConstraint(['user_id', 'server_id'], ['users.id', 'services.id'])
     @declared_attr
     def user_id(cls):
-        return Column(Integer, ForeignKey('users.id'))
+        return Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=True)
+
+    @declared_attr
+    def service_id(cls):
+        return Column(Integer, ForeignKey('services.id', ondelete="CASCADE"), nullable=True)
 
     id = Column(Integer, primary_key=True)
     hashed = Column(Unicode(1023))
@@ -349,22 +487,42 @@ class APIToken(Base):
         self.hashed = hash_token(token, rounds=self.rounds, salt=self.salt_bytes, algorithm=self.algorithm)
 
     def __repr__(self):
-        return "<{cls}('{pre}...', user='{u}')>".format(
+        if self.user is not None:
+            kind = 'user'
+            name = self.user.name
+        elif self.service is not None:
+            kind = 'service'
+            name = self.service.name
+        else:
+            # this shouldn't happen
+            kind = 'owner'
+            name = 'unknown'
+        return "<{cls}('{pre}...', {kind}='{name}')>".format(
             cls=self.__class__.__name__,
             pre=self.prefix,
-            u=self.user.name,
+            kind=kind,
+            name=name,
         )
 
     @classmethod
-    def find(cls, db, token):
+    def find(cls, db, token, *, kind=None):
         """Find a token object by value.
 
         Returns None if not found.
+        
+        `kind='user'` only returns API tokens for users
+        `kind='service'` only returns API tokens for services
         """
         prefix = token[:cls.prefix_length]
         # since we can't filter on hashed values, filter on prefix
         # so we aren't comparing with all tokens
         prefix_match = db.query(cls).filter(bindparam('prefix', prefix).startswith(cls.prefix))
+        if kind == 'user':
+            prefix_match = prefix_match.filter(cls.user_id != None)
+        elif kind == 'service':
+            prefix_match = prefix_match.filter(cls.service_id != None)
+        elif kind is not None:
+            raise ValueError("kind must be 'user', 'service', or None, not %r" % kind)
         for orm_token in prefix_match:
             if orm_token.match(token):
                 return orm_token
@@ -373,11 +531,38 @@ class APIToken(Base):
         """Is this my token?"""
         return compare_token(self.hashed, token)
 
+    @classmethod
+    def new(cls, token=None, user=None, service=None):
+        """Generate a new API token for a user or service"""
+        assert user or service
+        assert not (user and service)
+        db = inspect(user or service).session
+        if token is None:
+            token = new_token()
+        else:
+            if len(token) < 8:
+                raise ValueError("Tokens must be at least 8 characters, got %r" % token)
+            found = APIToken.find(db, token)
+            if found:
+                raise ValueError("Collision on token: %s..." % token[:4])
+        orm_token = APIToken(token=token)
+        if user:
+            assert user.id is not None
+            orm_token.user_id = user.id
+        else:
+            assert service.id is not None
+            orm_token.service_id = service.id
+        db.add(orm_token)
+        db.commit()
+        return token
+
 
 def new_session_factory(url="sqlite:///:memory:", reset=False, **kwargs):
     """Create a new session at url"""
     if url.startswith('sqlite'):
         kwargs.setdefault('connect_args', {'check_same_thread': False})
+    elif url.startswith('mysql'):
+        kwargs.setdefault('pool_recycle', 60)
 
     if url.endswith(':memory:'):
         # If we're using an in-memory database, ensure that only one connection

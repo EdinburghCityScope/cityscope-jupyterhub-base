@@ -368,17 +368,17 @@ class LocalLoopbackProcessSpawner(DataApiSpawner):
     def setup_data(self,data):
         """Import data into loopback"""
 
-        for repository in data:
-            print("repository",repository)
-            cmd=[]
-            env=self.get_env()
-            cmd.extend(self.cmd)
-            cmd.extend(self.get_data_setup_args())
-            self.log.info("Setting up %s", ' '.join(pipes.quote(s) for s in cmd))
-            self.proc = Popen(cmd, env=env,
-                start_new_session=True, # don't forward signals
-                )
-            self.github_file_copies(repository)
+        repository = data['repository']
+        self.log.info("repository",repository)
+        cmd=[]
+        env=self.get_env()
+        cmd.extend(self.cmd)
+        cmd.extend(self.get_data_setup_args())
+        self.log.info("Setting up %s", ' '.join(pipes.quote(s) for s in cmd))
+        self.proc = Popen(cmd, env=env,
+            start_new_session=True, # don't forward signals
+            )
+        self.github_file_copies(repository)
 
     @gen.coroutine
     def start(self,credential):
@@ -557,6 +557,14 @@ class DockerProcessSpawner(DataApiSpawner):
         )
     )
 
+    volume_driver = Unicode("convoy",
+    config=True,
+    help=dedent(
+        """
+        Volume driver to be used, defaults to convoy.
+        """
+    ))
+
     read_only_volumes = Dict(
         config=True,
         help=dedent(
@@ -701,10 +709,19 @@ class DockerProcessSpawner(DataApiSpawner):
     def container_name(self):
         return "{}-{}".format(self.container_prefix, self.escaped_name)
 
+    @gen.coroutine
     def get_state(self):
         state = super(DockerProcessSpawner, self).get_state()
-        if self.container_id:
-            state['container_id'] = self.container_id
+        container = yield self.get_container()
+        if container is None:
+            self.log.info("Returning none")
+            return None
+        if container['State']['Running']:
+            self.log.info("returning %s",container['Id'])
+            state['container_id'] = container['Id']
+            self.container_id = container['Id']
+        else:
+            state['container_state'] = container['State']['Status']
         return state
 
     def _public_hub_api_url(self):
@@ -844,25 +861,24 @@ class DockerProcessSpawner(DataApiSpawner):
     @gen.coroutine
     def setup_data(self,data):
         """Import data into loopback"""
-        for repository in data:
+        repository = data['repository']
+        dataUrl = "https://raw.githubusercontent.com/"+repository+"/master/data.json"
+        self.log.info("Sending dataUrl to "+self.container_name+" container:"+dataUrl)
+        cmd=""
+        for commands in self.cmd:
+            if not cmd:
+                cmd=cmd+commands
+            else:
+                cmd=cmd+" "+commands
+        for commands in self.get_data_setup_args():
+            cmd = cmd + " " + commands
+        cmd = cmd+" dcat-data-url="+dataUrl
+        self.log.info("executing: "+cmd)
+        response = yield self.docker("exec_create",container=self.container_name,cmd=cmd)
+        response = yield self.docker("exec_start",response["Id"]);
+        self.log.info(response)
 
-            dataUrl = "https://raw.githubusercontent.com/"+repository+"/master/data.json"
-            self.log.info("Sending dataUrl to "+self.container_name+" container:"+dataUrl)
-            cmd=""
-            for commands in self.cmd:
-                if not cmd:
-                    cmd=cmd+commands
-                else:
-                    cmd=cmd+" "+commands
-            for commands in self.get_data_setup_args():
-                cmd = cmd + " " + commands
-            cmd = cmd+" dcat-data-url="+dataUrl
-            self.log.info("executing: "+cmd)
-            response = yield self.docker("exec_create",container=self.container_name,cmd=cmd)
-            response = yield self.docker("exec_start",response["Id"]);
-            self.log.info(response)
-
-            self.github_file_copies(repository)
+        self.github_file_copies(repository)
 
     @gen.coroutine
     def start(self,credential, image=None, extra_create_kwargs=None,
@@ -924,7 +940,7 @@ class DockerProcessSpawner(DataApiSpawner):
             create_kwargs.setdefault('host_config', {}).update(host_config)
 
             for volume in self.volume_binds.keys():
-                yield self.docker('create_volume', name=volume, driver='convoy')
+                yield self.docker('create_volume', name=volume, driver=self.volume_driver)
 
             # create the container
             resp = yield self.docker('create_container', **create_kwargs)

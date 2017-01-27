@@ -1,0 +1,72 @@
+{% extends "page.html" %}
+
+{% block main %}
+
+<div class="container">
+
+<div>
+    <div id="successRow" class="row hidden">
+        <div class="col-md-12">
+            <div id="successMessage" class="alert alert-success" role="alert">
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div>
+    <div id="warningRow" class="row hidden">
+        <div class="col-md-12">
+            <div id="warningMessage" class="alert alert-warning">
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div>
+    <div id="errorRow" class="row hidden">
+        <div class="col-md-12">
+            <div id="errorMessage" class="alert alert-danger">
+
+            </div>
+        </div>
+    </div>
+</div>
+<div class="page-header">
+    <h1>Cityscope Workbench <small>Add a public dataset</small></h1>
+</div>
+
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <h1>Dataset selection</h1>
+        <p>Please select a dataset from the options below.</p
+      </div>
+      <div class="text-left">
+        <form id="repository-form">
+          <table id="github-repositories" class="table table-striped table-bordered">
+            <thead>
+              <th>Repository name</th>
+              <th>Futher Details</th>
+              <th>Import data</th>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <a href="/hub/home" class="btn btn-lg btn-warning">Cancel</a>
+          <button id="setup-data-button" type="submit" class="btn btn-lg btn-primary">Setup Data</button>
+        </form>
+      </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript">
+require(["home"]);
+</script>
+<script type="text/javascript">
+  require(["cityscope-importer"]);
+</script>
+{% endblock %}

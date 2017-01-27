@@ -33,58 +33,133 @@
         </div>
     </div>
 </div>
+<div class="page-header">
+    <h1>Cityscope Workbench <small>Please choose an option below</small></h1>
+</div>
 
-  <div class="row">
-    <div class="text-center">
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">My Notebook</h3>
+  </div>
+    <div class="panel-body">
+      <a id="start" class="btn btn-lg btn-primary"
       {% if user.running %}
-      <a id="stop" class="btn btn-lg btn-danger">Stop My Server</a>
-      {% endif %}
-      <a id="start" class="btn btn-lg btn-success"
-      {% if user.running %}
-        href="{{base_url}}user/{{user.name}}/"
+        href="{{ user.url }}"
       {% else %}
         href="{{base_url}}spawn"
       {% endif %}
       >
       {% if not user.running %}
-      Start
+      Start Notebook
       {% endif %}
-        My Server
+      {% if user.running %}
+        Go to My Notebook
+      {% endif %}
       </a>
       {% if user.admin %}
       <a id="admin" class="btn btn-lg btn-primary" href="{{base_url}}admin">Admin</a>
       {% endif %}
+      {% if user.running %}
+      <div class="btn-group pull-right">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+            <li><a id="stop">Stop My Notebook</a></li>
+          </ul>
+      </div>
+      {% endif %}
     </div>
-  </div>
-  <div class="row">
-    <div class="text-center">
-      <h1>Dataset selection</h1>
-      <p>Welcome to Edinburgh CityScope! Would you like to use some datasets with Jupyter?</p
-    </div>
-    <div class="text-left">
-      <form id="repository-form">
-        <table id="github-repositories" class="table">
-          <thead>
-            <th>Repository name</th>
-            <th>Futher Details</th>
-            <th>Use data</th>
-          </thead>
-          <tbody></tbody>
-        </table>
-    </div>
-    <div class="text-center">
-      <button id="start-loopback-button" type="button" class="btn btn-lg btn-success">Start Loopback Server</button>
-      <button id="stop-loopback-button" type="button" class="btn btn-lg btn-danger">Stop Loopback Server</button>
-      <button id="setup-data-button" type="submit" class="btn btn-lg btn-warning">Setup Data</button>
-      <button id="start-mysql-button" type="submit" class="btn btn-lg btn-warning">Start MySQL</button>
-      <button id="stop-mysql-button" type="submit" class="btn btn-lg btn-warning">Stop MySQL</button>
 
-      <button id="start-wordpress-button" type="submit" class="btn btn-lg btn-warning">Start Wordpress</button>
-      <button id="stop-wordpress-button" type="submit" class="btn btn-lg btn-warning">Stop Wordpress</button>
-      </form>
-      <a id="data-uploader-button" class="btn btn-lg btn-success" href="{{base_url}}add-dataset">Add Dataset</a>
+    <div class="panel-footer">
+      Use Notebooks to visualise and annotate data, and store information.
     </div>
   </div>
+
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">My API</h3>
+      </div>
+      <div class="panel-body">
+
+        <button id="create-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
+        <button id="start-loopback-button" class="btn btn-lg btn-primary">Start my API</button>
+        <a id="goto-my-api" href="/loopback/{{ user.name }}/explorer" class="btn btn-lg btn-primary">Go to My API</a>
+        <div class="btn-group pull-right">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a id="stop-my-api" href="#">Stop my API</a></li>
+              <li><a id="show-api-password" href="#">Show my API password</a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="panel-footer">For developers, create an API so you can programmatically interact with and create new data</div>
+    </div>
+    <!-- Modal -->
+     <div class="modal fade" id="apiPasswordModal" tabindex="-1" role="dialog" aria-labelledby="apiPasswordModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="apiPasswordModalLabel">Loopback Password</h4>
+                </div>
+                <div id="apiPasswordModalBody" class="modal-body">
+                </div>
+            </div>
+        </div>
+     </div>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">My Tour Blog</h3>
+      </div>
+      <div class="panel-body">
+        <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Tour Blog</button>
+        <button id="start-blog-button" type="submit" class="btn btn-lg btn-primary">Start My Tour Blog</button>
+        <a id="goto-my-blog" href="/wordpress/{{ user.name }}" class="btn btn-lg btn-primary">Go to My Tour Blog</a>
+        <div class="btn-group pull-right">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a id="stop-my-blog" href="#">Stop my blog</a></li>
+              <li><a id="show-blog-password" href="#">Show my Blog password</a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="panel-footer">Create a virtual tour using your own tour blog</div>
+    </div>
+    <!-- Modal -->
+     <div class="modal fade" id="blogPasswordModal" tabindex="-1" role="dialog" aria-labelledby="blogPasswordModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="blogPasswordModalLabel">Blog Password</h4>
+                </div>
+                <div id="blogPasswordModalBody" class="modal-body">
+                </div>
+            </div>
+        </div>
+     </div>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Add a dataset<h3>
+      </div>
+      <div class="panel-body">
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add a dataset <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a href="/add-dataset">Import my own dataset</a></li>
+              <li><a href="/add-public-dataset">Choose from existing dataset</a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="panel-footer">Add a dataset to your workbench to use within a Notebook or with your API. Either add a dataset of your own, or choose from a list of existing Cityscope datasets</div>
+    </div>
 </div>
 
 {% endblock %}

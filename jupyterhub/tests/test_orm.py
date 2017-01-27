@@ -90,7 +90,80 @@ def test_tokens(db):
     assert len(user.api_tokens) == 2
     found = orm.APIToken.find(db, token=token)
     assert found.match(token)
+    assert found.user is user
+    assert found.service is None
     found = orm.APIToken.find(db, 'something else')
+    assert found is None
+
+    secret = 'super-secret-preload-token'
+    token = user.new_api_token(secret)
+    assert token == secret
+    assert len(user.api_tokens) == 3
+
+    # raise ValueError on collision
+    with pytest.raises(ValueError):
+        user.new_api_token(token)
+    assert len(user.api_tokens) == 3
+
+
+def test_service_tokens(db):
+    service = orm.Service(name='secret')
+    db.add(service)
+    db.commit()
+    token = service.new_api_token()
+    assert any(t.match(token) for t in service.api_tokens)
+    service.new_api_token()
+    assert len(service.api_tokens) == 2
+    found = orm.APIToken.find(db, token=token)
+    assert found.match(token)
+    assert found.user is None
+    assert found.service is service
+    service2 = orm.Service(name='secret')
+    db.add(service)
+    db.commit()
+    assert service2.id != service.id
+
+
+def test_service_server(db):
+    service = orm.Service(name='has_servers')
+    db.add(service)
+    db.commit()
+    
+    assert service.server is None
+    server = service.server = orm.Server()
+    assert service
+    assert server.id is None
+    db.commit()
+    assert isinstance(server.id, int)
+    
+
+def test_token_find(db):
+    service = db.query(orm.Service).first()
+    user = db.query(orm.User).first()
+    service_token = service.new_api_token()
+    user_token = user.new_api_token()
+    with pytest.raises(ValueError):
+        orm.APIToken.find(db, 'irrelevant', kind='richard')
+    # no kind, find anything
+    found = orm.APIToken.find(db, token=user_token)
+    assert found
+    assert found.match(user_token)
+    found = orm.APIToken.find(db, token=service_token)
+    assert found
+    assert found.match(service_token)
+
+    # kind=user, only find user tokens
+    found = orm.APIToken.find(db, token=user_token, kind='user')
+    assert found
+    assert found.match(user_token)
+    found = orm.APIToken.find(db, token=service_token, kind='user')
+    assert found is None
+
+    # kind=service, only find service tokens
+    found = orm.APIToken.find(db, token=service_token, kind='service')
+    assert found
+    assert found.match(service_token)
+    found = orm.APIToken.find(db, token=user_token, kind='service')
     assert found is None
 
 
@@ -114,3 +187,17 @@ def test_spawn_fails(db, io_loop):
     assert user.server is None
     assert not user.running
 
+
+def test_groups(db):
+    user = orm.User.find(db, name='aeofel')
+    db.add(user)
+    
+    group = orm.Group(name='lives')
+    db.add(group)
+    db.commit()
+    assert group.users == []
+    assert user.groups == []
+    group.users.append(user)
+    db.commit()
+    assert group.users == [user]
+    assert user.groups == [group]

@@ -152,15 +152,15 @@ require(["jquery", "bootstrap", "moment", "jhapi", "utils"], function ($, bs, mo
         });
     });
     
-    $("#add-user").click(function () {
-        var dialog = $("#add-user-dialog");
+    $("#add-users").click(function () {
+        var dialog = $("#add-users-dialog");
         dialog.find(".username-input").val('');
         dialog.find(".admin-checkbox").prop("checked", false);
         dialog.modal();
     });
 
-    $("#add-user-dialog").find(".save-button").click(function () {
-        var dialog = $("#add-user-dialog");
+    $("#add-users-dialog").find(".save-button").click(function () {
+        var dialog = $("#add-users-dialog");
         var lines = dialog.find(".username-input").val().split('\n');
         var admin = dialog.find(".admin-checkbox").prop("checked");
         var usernames = [];
@@ -176,6 +176,15 @@ require(["jquery", "bootstrap", "moment", "jhapi", "utils"], function ($, bs, mo
                 window.location.reload();
             }
         });
+    });
+
+    $("#stop-all-servers").click(function () {
+        $("#stop-all-servers-dialog").modal();
+    });
+
+    $("#stop-all-servers-dialog").find(".stop-all-button").click(function () {
+        // stop all clicks all the active stop buttons
+        $('.stop-server').not('.hidden').click();
     });
 
     $("#shutdown-hub").click(function () {

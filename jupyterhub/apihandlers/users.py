@@ -41,7 +41,7 @@ class UserListAPIHandler(APIHandler):
                 continue
             user = self.find_user(name)
             if user is not None:
-                self.log.warn("User %s already exists" % name)
+                self.log.warning("User %s already exists" % name)
             else:
                 to_create.append(name)
         
@@ -161,8 +161,9 @@ class UserServerAPIHandler(APIHandler):
     @admin_or_self
     def post(self, name):
         user = self.find_user(name)
-        if user.spawner:
-            state = yield user.spawner.poll()
+        if user.running:
+            # include notify, so that a server that died is noticed immediately
+            state = yield user.spawner.poll_and_notify()
             if state is None:
                 raise web.HTTPError(400, "%s's server is already running" % name)
 
@@ -180,7 +181,8 @@ class UserServerAPIHandler(APIHandler):
             return
         if not user.running:
             raise web.HTTPError(400, "%s's server is not running" % name)
-        status = yield user.spawner.poll()
+        # include notify, so that a server that died is noticed immediately
+        status = yield user.spawner.poll_and_notify()
         if status is not None:
             raise web.HTTPError(400, "%s's server is not running" % name)
         yield self.stop_single_user(user)
@@ -195,7 +197,7 @@ class UserAdminAccessAPIHandler(APIHandler):
     @admin_only
     def post(self, name):
         current = self.get_current_user()
-        self.log.warn("Admin user %s has requested access to %s's server",
+        self.log.warning("Admin user %s has requested access to %s's server",
             current.name, name,
         )
         if not self.settings.get('admin_access', False):
