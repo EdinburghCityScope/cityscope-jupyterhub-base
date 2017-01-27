@@ -477,11 +477,11 @@ class FieldtripProcessSpawner(FieldtripSpawner):
         }
         """
         volumes = {
-            key.format(username=self.user.name): {'bind': value.format(username=self.user.name), 'ro': False}
+            key.format(username=self.user.name): {'bind': value.format(username=self.user.name), 'mode': 'rw,nocopy'}
             for key, value in self.volumes.items()
         }
         ro_volumes = {
-            key.format(username=self.user.name): {'bind': value.format(username=self.user.name), 'ro': True}
+            key.format(username=self.user.name): {'bind': value.format(username=self.user.name), 'mode': 'ro'}
             for key, value in self.read_only_volumes.items()
         }
         volumes.update(ro_volumes)
