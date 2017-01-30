@@ -145,6 +145,39 @@
      </div>
     <div class="panel panel-default">
       <div class="panel-heading">
+        <h3 class="panel-title">My Fieldtrip</h3>
+      </div>
+      <div class="panel-body">
+        <button id="create-fieldtrip-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Fieldtrip</button>
+        <button id="start-fieldtrip-button" type="submit" class="btn btn-lg btn-primary">Start My Fieldtrip</button>
+        <a id="goto-my-fieldtrip" href="/fieldtrip/{{ user.name }}/" class="btn btn-lg btn-primary">Go to My Fieldtrip</a>
+        <div class="btn-group pull-right">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a id="stop-my-fieldtrip" href="#">Stop my Fieldtrip</a></li>
+              <li><a id="show-fieldtrip-password" href="#">Show my Fieldtrip password</a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="panel-footer">Create a citizen science survey using your own Fieldtrip server</div>
+    </div>
+    <!-- Modal -->
+     <div class="modal fade" id="fieldtripPasswordModal" tabindex="-1" role="dialog" aria-labelledby="fieldtripPasswordModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="fieldtripPasswordModalLabel">Fieldtrip Password</h4>
+                </div>
+                <div id="fieldtripPasswordModalBody" class="modal-body">
+                </div>
+            </div>
+        </div>
+     </div>
+    <div class="panel panel-default">
+      <div class="panel-heading">
         <h3 class="panel-title">Add a dataset<h3>
       </div>
       <div class="panel-body">
