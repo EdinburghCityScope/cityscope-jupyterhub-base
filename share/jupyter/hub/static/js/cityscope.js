@@ -22,6 +22,12 @@ $(document).ready(function()
     $("#create-loopback-button").show();
     $("#show-api-password").hide();
 
+    $("#stop-my-fieldtrip").hide();
+    $("#start-fieldtrip-button").hide();
+    $("#goto-my-fieldtrip").hide();
+    $("#show-fieldtrip-password").hide();
+    $("#create-fieldtrip-button").show();
+
     api.get_loopback_status(user,{
       success: function(xhr) {
 
@@ -105,6 +111,45 @@ $(document).ready(function()
           $("#start-blog-button").hide();
           $("#show-blog-password").hide();
           $("#create-blog-button").show();
+        }
+      }
+    });
+
+    api.get_fieldtrip_status(user,{
+      success: function(xhr) {
+
+      },
+      error: function(xhr){
+        $("#stop-my-fieldtrip").hide();
+        $("#goto-my-fieldtrip").hide();
+        $("#create-fieldtrip-button").show();
+      },
+      complete: function(xhr){
+
+        if (xhr.status=="200")
+        {
+          console.info('fieldtrip is up');
+          $("#stop-my-fieldtrip").show();
+          $("#goto-my-fieldtrip").show();
+          $("#start-fieldtrip-button").hide();
+          $("#show-fieldtrip-password").show();
+          $("#create-fieldtrip-button").hide();
+        }
+        else if (xhr.status=="204") {
+          console.log("fieldtrip is stopped");
+          $("#stop-my-fieldtrip").hide();
+          $("#goto-my-fieldtrip").hide();
+          $("#start-fieldtrip-button").show();
+          $("#show-fieldtrip-password").show();
+          $("#create-fieldtrip-button").hide();
+        }
+        else if (xhr.status=="404"){
+          console.log("fieldtrip not yet created");
+          $("#stop-my-fieldtrip").hide();
+          $("#goto-my-fieldtrip").hide();
+          $("#start-fieldtrip-button").hide();
+          $("#show-fieldtrip-password").hide();
+          $("#create-fieldtrip-button").show();
         }
       }
     });
@@ -196,6 +241,43 @@ $(document).ready(function()
        });
    });
 
+     $("#start-fieldtrip-button").click(function () {
+       $("#warningRow").removeClass("hidden");
+       $("#warningMessage").text("Starting fieldtrip, please wait...");
+        api.start_fieldtrip(user, {
+          success: function (data) {
+              console.info('succesfully started fieldtrip');
+              $("#warningRow").addClass("hidden");
+              $("#successRow").removeClass("hidden");
+              $("#successMessage").text(data.message);
+              $("#stop-my-fieldtrip").show();
+              $("#start-fieldtrip-button").hide();
+              $("#create-fieldtrip-button").hide();
+              $("#goto-my-fieldtrip").show();
+              $("#show-fieldtrip-password").show();
+          }
+      });
+    });
+
+    $("#create-fieldtrip-button").click(function () {
+      $("#warningRow").removeClass("hidden");
+      $("#warningMessage").text("Starting fieldtrip, please wait...");
+       api.start_fieldtrip(user, {
+         success: function (data) {
+             console.info('succesfully started fieldtrip');
+             $("#warningRow").addClass("hidden");
+             $("#successRow").removeClass("hidden");
+             $("#successMessage").text(data.message);
+             $("#stop-my-fieldtrip").show();
+             $("#start-fieldtrip-button").hide();
+             $("#create-fieldtrip-button").hide();
+             $("#goto-my-fieldtrip").show();
+             $("#show-fieldtrip-password").show();
+         }
+     });
+   });
+
+
    $("#show-api-password").click(function(){
      api.get_loopback_credential(user,{
        success: function(data){
@@ -211,6 +293,16 @@ $(document).ready(function()
        success: function(data){
          $("#blogPasswordModalBody").html(data);
          $('#blogPasswordModal').modal();
+       }
+     });
+
+   });
+
+   $("#show-fieldtrip-password").click(function(){
+     api.get_blog_credential(user,{
+       success: function(data){
+         $("#fieldtripPasswordModalBody").html(data);
+         $('#fieldtripPasswordModal').modal();
        }
      });
 
@@ -234,6 +326,22 @@ $(document).ready(function()
         });
     });
 
+     $("#stop-my-fieldtrip").click(function () {
+               $("#warningRow").removeClass("hidden");
+               $("#warningMessage").text("Stopping fieldtrip, please wait...");
+        api.stop_fieldtrip(user, {
+            success: function () {
+                console.info('succesfully stopped fieldtrip');
+                $("#warningRow").addClass("hidden");
+                $("#successRow").removeClass("hidden");
+                $("#successMessage").text("Loopback stopped.");
+                $("#stop-my-fieldtrip").hide();
+                $("#goto-my-fieldtrip").hide();
+                $("#start-fieldtrip-button").show();
+            }
+        });
+    });
+
    $("#stop-my-blog").click(function () {
              $("#warningRow").removeClass("hidden");
              $("#warningMessage").text("Stopping Wordpress, please wait...");
@@ -249,6 +357,7 @@ $(document).ready(function()
           }
       });
   });
+
 
 
 });
