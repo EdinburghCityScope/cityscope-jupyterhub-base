@@ -212,6 +212,7 @@ $(document).ready(function()
                  $("#start-blog-button").hide();
                  $("#create-blog-button").hide();
                  $("#goto-my-blog").show();
+                 $("#show-blog-password").show();
              }
            });
          }
