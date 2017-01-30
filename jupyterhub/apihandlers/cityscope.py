@@ -272,7 +272,7 @@ class UserWordpressAPIHandler(APIHandler):
                 else:
                     self.set_status(404)
             else:
-                self.set_status(204)
+                self.set_status(404)
 
 class UserFieldtripAPIHandler(APIHandler):
 
@@ -361,7 +361,7 @@ class UserFieldtripAPIHandler(APIHandler):
                 else:
                     self.set_status(404)
             else:
-                self.set_status(204)
+                self.set_status(404)
 
 default_handlers = [
     (r"/api/users/([^/]+)/loopback", UserLoopbackAPIHandler),
