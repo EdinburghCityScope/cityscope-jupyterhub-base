@@ -31,7 +31,7 @@
         <form enctype="multipart/form-data" action="{{base_url}}add-dataset" method="post">
             <div class="form-group {{form_class}}"  id="fileUploadDiv">
 			        <label class="control-label" for="filearg">Select a <abbr title="Comma Separated Value">csv</abbr> file to upload</label>
-			        <input type="file" accept=".csv,text/plain" name="filearg" id="fileInput"/>
+			        <input type="file" accept="text/csv" name="filearg" id="fileInput"/>
                     <span id="errorBlock" class="help-block">
                         {% if error_message %}
                             <ul>
