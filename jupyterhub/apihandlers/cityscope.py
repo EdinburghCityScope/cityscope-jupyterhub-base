@@ -215,9 +215,9 @@ class UserWordpressAPIHandler(APIHandler):
 
         new = yield wordpress_spawner.start(credential=new_credential)
         if new:
-            message = "We're setting up a Wordpress instance for you, it may take up to an hour for this to become available. To view your password, click the cog to the right and select Show my Blog password."
+            message = "We're setting up a Tour Blog instance for you, it may take up to an hour for this to become available. To view your password, click the cog to the right and select Show my Blog password."
         else:
-            message = "Wordpress startup complete"
+            message = "Tour Blog startup complete"
 
         response = { 'message' : message}
         self.write(response)
