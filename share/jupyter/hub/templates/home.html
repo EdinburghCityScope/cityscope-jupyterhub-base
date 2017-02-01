@@ -4,35 +4,6 @@
 
 <div class="container">
 
-<div>
-    <div id="successRow" class="row hidden">
-        <div class="col-md-12">
-            <div id="successMessage" class="alert alert-success" role="alert">
-
-            </div>
-        </div>
-    </div>
-</div>
-
-<div>
-    <div id="warningRow" class="row hidden">
-        <div class="col-md-12">
-            <div id="warningMessage" class="alert alert-warning">
-
-            </div>
-        </div>
-    </div>
-</div>
-
-<div>
-    <div id="errorRow" class="row hidden">
-        <div class="col-md-12">
-            <div id="errorMessage" class="alert alert-danger">
-
-            </div>
-        </div>
-    </div>
-</div>
 <div class="page-header">
     <h1>Cityscope Workbench <small>Please choose an option below</small></h1>
 </div>
@@ -80,19 +51,31 @@
       <div class="panel-heading">
         <h3 class="panel-title">My API</h3>
       </div>
-      <div class="panel-body">
+      <div id="apiBody" class="panel-body">
 
-        <button id="create-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
-        <button id="start-loopback-button" class="btn btn-lg btn-primary">Start my API</button>
-        <a id="goto-my-api" href="/loopback/{{ user.name }}/explorer" class="btn btn-lg btn-primary">Go to My API</a>
-        <div class="btn-group pull-right">
-            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu">
-              <li><a id="stop-my-api" href="#">Stop my API</a></li>
-              <li><a id="show-api-password" href="#">Show my API password</a></li>
-            </ul>
+        <div class="row">
+          <div class="col-md-3">
+            <button id="create-loopback-button" class="btn btn-lg btn-primary"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create an API</button>
+            <button id="start-loopback-button" class="btn btn-lg btn-primary">Start my API</button>
+            <a id="goto-my-api" href="/loopback/{{ user.name }}/explorer" class="btn btn-lg btn-primary">Go to My API</a>
+          </div>
+          <div class="col-md-6">
+              <div id="loopbackSuccessMessage" class="alert alert-success hidden" role="alert">
+              </div>
+              <div id="loopbackWarningMessage" class="alert alert-warning hidden" role="alert">
+              </div>
+          </div>
+          <div class="col-md-3">
+            <div class="btn-group pull-right">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a id="stop-my-api" href="#apiBody">Stop my API</a></li>
+                  <li><a id="show-api-password" href="#apiBody">Show my API password</a></li>
+                </ul>
+            </div>
+          </div>
         </div>
       </div>
       <div class="panel-footer">For developers, create an API so you can programmatically interact with and create new data</div>
@@ -115,18 +98,32 @@
         <h3 class="panel-title">My Tour Blog</h3>
       </div>
       <div class="panel-body">
-        <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Tour Blog</button>
-        <button id="start-blog-button" type="submit" class="btn btn-lg btn-primary">Start My Tour Blog</button>
-        <a id="goto-my-blog" href="/wordpress/{{ user.name }}" class="btn btn-lg btn-primary">Go to My Tour Blog</a>
-        <div class="btn-group pull-right">
-            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu">
-              <li><a id="stop-my-blog" href="#">Stop my blog</a></li>
-              <li><a id="show-blog-password" href="#">Show my Blog password</a></li>
-            </ul>
+        <div class="row">
+          <div class="col-md-3">
+            <button id="create-blog-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Tour Blog</button>
+            <button id="start-blog-button" type="submit" class="btn btn-lg btn-primary">Start My Tour Blog</button>
+            <a id="goto-my-blog" href="/wordpress/{{ user.name }}" class="btn btn-lg btn-primary">Go to My Tour Blog</a>
+          </div>
+          <div class="col-md-6">
+            <div id="blogSuccessMessage" class="alert alert-success hidden" role="alert">
+            </div>
+            <div id="blogWarningMessage" class="alert alert-warning hidden" role="alert">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="btn-group pull-right">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a id="stop-my-blog" href="#">Stop My Tour Blog</a></li>
+                  <li><a id="show-blog-password" href="#">Show My Blog password</a></li>
+                </ul>
+            </div>
+          </div>
         </div>
+
+
       </div>
       <div class="panel-footer">Create a virtual tour using your own tour blog</div>
     </div>
@@ -148,18 +145,32 @@
         <h3 class="panel-title">My Fieldtrip</h3>
       </div>
       <div class="panel-body">
-        <button id="create-fieldtrip-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Fieldtrip</button>
-        <button id="start-fieldtrip-button" type="submit" class="btn btn-lg btn-primary">Start My Fieldtrip</button>
-        <a id="goto-my-fieldtrip" href="/fieldtrip/{{ user.name }}/" class="btn btn-lg btn-primary">Go to My Fieldtrip</a>
-        <div class="btn-group pull-right">
-            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu">
-              <li><a id="stop-my-fieldtrip" href="#">Stop my Fieldtrip</a></li>
-              <li><a id="show-fieldtrip-password" href="#">Show my Fieldtrip password</a></li>
-            </ul>
+        <div class="row">
+          <div class="col-md-3">
+            <button id="create-fieldtrip-button" type="submit" class="btn btn-lg btn-primary"> <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Create a Fieldtrip</button>
+            <button id="start-fieldtrip-button" type="submit" class="btn btn-lg btn-primary">Start My Fieldtrip</button>
+            <a id="goto-my-fieldtrip" href="/fieldtrip/{{ user.name }}/" class="btn btn-lg btn-primary">Go to My Fieldtrip</a>
+          </div>
+          <div class="col-md-6">
+            <div id="fieldTripSuccessMessage" class="alert alert-success hidden" role="alert">
+            </div>
+            <div id="fieldTripWarningMessage" class="alert alert-warning hidden" role="alert">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="btn-group pull-right">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a id="stop-my-fieldtrip" href="#">Stop my Fieldtrip</a></li>
+                  <li><a id="show-fieldtrip-password" href="#">Show my Fieldtrip password</a></li>
+                </ul>
+            </div>
+          </div>
         </div>
+
+
       </div>
       <div class="panel-footer">Create a citizen science survey using your own Fieldtrip server</div>
     </div>
