@@ -601,7 +601,7 @@ class PublishDatasetHandler(BaseHandler):
                 dataset_link = get_user_tree() + self.slug + '/'
                 self.messages.append('Thank you. Your dataset should be ready to publish to GitHub.')
                 self.messages.append('<a href="/hub/add-dataset">Please return to the list datasets page.</a>')
-                self.messages.append('<a href="{0}">View all the files in your dataset</a>'.format(dataset_link))
+                #self.messages.append('<a href="{0}">View all the files in your dataset</a>'.format(dataset_link))
 
 
         html = self.render_template(page_template,
