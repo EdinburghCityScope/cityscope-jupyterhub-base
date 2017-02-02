@@ -863,21 +863,27 @@ class DockerProcessSpawner(DataApiSpawner):
         """Import data into loopback"""
         repository = data['repository']
         dataUrl = "https://raw.githubusercontent.com/"+repository+"/master/data.json"
-        self.log.info("Sending dataUrl to "+self.container_name+" container:"+dataUrl)
-        cmd=""
-        for commands in self.cmd:
-            if not cmd:
-                cmd=cmd+commands
+        status = yield self.get_state()
+        if status is not None:
+            if ("container_id" in status):
+                self.log.info("Sending dataUrl to "+self.container_name+" container:"+dataUrl)
+                cmd=""
+                for commands in self.cmd:
+                    if not cmd:
+                        cmd=cmd+commands
+                    else:
+                        cmd=cmd+" "+commands
+                for commands in self.get_data_setup_args():
+                    cmd = cmd + " " + commands
+                cmd = cmd+" dcat-data-url="+dataUrl
+                self.log.info("executing: "+cmd)
+                response = yield self.docker("exec_create",container=self.container_name,cmd=cmd)
+                response = yield self.docker("exec_start",response["Id"]);
+                self.log.info(response)
             else:
-                cmd=cmd+" "+commands
-        for commands in self.get_data_setup_args():
-            cmd = cmd + " " + commands
-        cmd = cmd+" dcat-data-url="+dataUrl
-        self.log.info("executing: "+cmd)
-        response = yield self.docker("exec_create",container=self.container_name,cmd=cmd)
-        response = yield self.docker("exec_start",response["Id"]);
-        self.log.info(response)
-
+                self.log.info("loopback down, ignoring loopback import");
+        else:
+            self.log.info("loopback not created, ignoring loopback import");
         self.github_file_copies(repository)
 
     @gen.coroutine
