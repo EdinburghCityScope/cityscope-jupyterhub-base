@@ -10,7 +10,7 @@
                         <th>Dataset name</th>
                         <th>Delete</th>
                         <th>Date</th>
-                        <th>View/Edit data</th>
+                    <!--    <th>View/Edit data</th>-->
                         <th>Format for Publishing<th>
                     </tr>
                 </thead>
@@ -23,13 +23,13 @@
                             </a>
                         </td>
                         <td>{{dataset['last_modified']}}</td>
-                        <td><a href="{{dataset['file_link']}}data"
+                    <!--    <td><a href="{{dataset['file_link']}}data"
                                 class="btn btn-default"
                                 role="button"
                                 alt="View and Edit this dataset locally">
                                 View/Edit
                             </a>
-                        </td>
+                        </td>-->
                         <td>{% if dataset['dcat_and_readme'] %}
                             <a href="{{base_url}}publish-dataset/{{dataset['file_name']}}"
                                 class="btn btn-success"
