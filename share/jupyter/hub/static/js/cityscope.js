@@ -155,14 +155,15 @@ $(document).ready(function()
     });
 
      $("#start-loopback-button").click(function () {
-       $("#warningRow").removeClass("hidden");
-       $("#warningMessage").text("Starting loopback, please wait...");
+       $("#loopbackSuccessMessage").addClass("hidden");
+       $("#loopbackWarningMessage").removeClass("hidden");
+       $("#loopbackWarningMessage").text("Starting API, please wait...");
         api.start_loopback(user, {
           success: function (data) {
               console.info('succesfully started loopback');
-              $("#warningRow").addClass("hidden");
-              $("#successRow").removeClass("hidden");
-              $("#successMessage").text(data.message);
+              $("#loopbackWarningMessage").addClass("hidden");
+              $("#loopbackSuccessMessage").removeClass("hidden");
+              $("#loopbackSuccessMessage").text(data.message);
               $("#stop-loopback-button").show();
               $("#stop-my-api").show();
               $("#start-loopback-button").hide();
@@ -175,14 +176,14 @@ $(document).ready(function()
     });
 
     $("#create-loopback-button").click(function () {
-      $("#warningRow").removeClass("hidden");
-      $("#warningMessage").text("Starting loopback, please wait...");
+      $("#loopbackWarningMessage").removeClass("hidden");
+      $("#loopbackWarningMessage").text("Starting loopback, please wait...");
        api.start_loopback(user, {
          success: function (data) {
              console.info('succesfully started loopback');
-             $("#warningRow").addClass("hidden");
-             $("#successRow").removeClass("hidden");
-             $("#successMessage").text(data.message);
+             $("#loopbackWarningMessage").addClass("hidden");
+             $("#loopbackSuccessMessage").removeClass("hidden");
+             $("#loopbackSuccessMessage").text(data.message);
              $("#stop-loopback-button").show();
              $("#stop-my-api").show();
              $("#start-loopback-button").hide();
@@ -195,8 +196,9 @@ $(document).ready(function()
    });
 
    $("#create-blog-button").click(function(){
-     $("#warningRow").removeClass("hidden");
-     $("#warningMessage").text("Setting up a new blog for you, please wait, this may take a little while...");
+     $("#blogSuccessMessage").addClass("hidden");
+     $("#blogWarningMessage").removeClass("hidden");
+     $("#blogWarningMessage").text("Requesting a new blog for you, please wait...");
      console.log("starting mysql");
      api.start_mysql(user, {
        success: function (data) {
@@ -205,13 +207,14 @@ $(document).ready(function()
            api.start_wordpress(user, {
              success: function (data) {
                  console.info('succesfully started Wordpress');
-                 $("#warningRow").addClass("hidden");
-                 $("#successRow").removeClass("hidden");
-                 $("#successMessage").text(data.message);
+                 $("#blogWarningMessage").addClass("hidden");
+                 $("#blogSuccessMessage").removeClass("hidden");
+                 $("#blogSuccessMessage").text(data.message);
                  $("#stop-my-blog").show();
                  $("#start-blog-button").hide();
                  $("#create-blog-button").hide();
                  $("#goto-my-blog").show();
+                 $("#show-blog-password").show();
              }
            });
          }
@@ -219,8 +222,9 @@ $(document).ready(function()
    });
 
    $("#start-blog-button").click(function () {
-     $("#warningRow").removeClass("hidden");
-     $("#warningMessage").text("Starting your Blog, please wait...");
+     $("#blogSuccessMessage").addClass("hidden");
+     $("#blogWarningMessage").removeClass("hidden");
+     $("#blogWarningMessage").text("Starting your Tour Blog, please wait...");
      api.start_mysql(user, {
        success: function (data) {
            console.info('succesfully started mysql');
@@ -228,9 +232,9 @@ $(document).ready(function()
            api.start_wordpress(user, {
              success: function (data) {
                  console.info('succesfully started Wordpress');
-                 $("#warningRow").addClass("hidden");
-                 $("#successRow").removeClass("hidden");
-                 $("#successMessage").text(data.message);
+                 $("#blogWarningMessage").addClass("hidden");
+                 $("#blogSuccessMessage").removeClass("hidden");
+                 $("#blogSuccessMessage").text(data.message);
                  $("#stop-my-blog").show();
                  $("#start-blog-button").hide();
                  $("#create-blog-button").hide();
@@ -242,14 +246,15 @@ $(document).ready(function()
    });
 
      $("#start-fieldtrip-button").click(function () {
-       $("#warningRow").removeClass("hidden");
-       $("#warningMessage").text("Starting fieldtrip, please wait...");
+       $("#fieldTripSuccessMessage").addClass("hidden");
+       $("#fieldTripWarningMessage").removeClass("hidden");
+       $("#fieldTripWarningMessage").text("Starting Fieldtrip, please wait...");
         api.start_fieldtrip(user, {
           success: function (data) {
               console.info('succesfully started fieldtrip');
-              $("#warningRow").addClass("hidden");
-              $("#successRow").removeClass("hidden");
-              $("#successMessage").text(data.message);
+              $("#fieldTripWarningMessage").addClass("hidden");
+              $("#fieldTripSuccessMessage").removeClass("hidden");
+              $("#fieldTripSuccessMessage").text(data.message);
               $("#stop-my-fieldtrip").show();
               $("#start-fieldtrip-button").hide();
               $("#create-fieldtrip-button").hide();
@@ -260,14 +265,15 @@ $(document).ready(function()
     });
 
     $("#create-fieldtrip-button").click(function () {
-      $("#warningRow").removeClass("hidden");
-      $("#warningMessage").text("Starting fieldtrip, please wait...");
+      $("#fieldTripSuccessMessage").addClass("hidden");
+      $("#fieldTripWarningMessage").removeClass("hidden");
+      $("#fieldTripWarningMessage").text("Starting Fieldtrip, please wait...");
        api.start_fieldtrip(user, {
          success: function (data) {
              console.info('succesfully started fieldtrip');
-             $("#warningRow").addClass("hidden");
-             $("#successRow").removeClass("hidden");
-             $("#successMessage").text(data.message);
+             $("#fieldTripWarningMessage").addClass("hidden");
+             $("#fieldTripSuccessMessage").removeClass("hidden");
+             $("#fieldTripSuccessMessage").text(data.message);
              $("#stop-my-fieldtrip").show();
              $("#start-fieldtrip-button").hide();
              $("#create-fieldtrip-button").hide();
@@ -279,44 +285,48 @@ $(document).ready(function()
 
 
    $("#show-api-password").click(function(){
-     api.get_blog_credential(user,{
+     api.get_loopback_credential(user,{
        success: function(data){
          $("#apiPasswordModalBody").html(data);
          $('#apiPasswordModal').modal();
        }
      });
+     return false;
 
    });
 
    $("#show-blog-password").click(function(){
-     api.get_loopback_credential(user,{
+     api.get_blog_credential(user,{
        success: function(data){
          $("#blogPasswordModalBody").html(data);
          $('#blogPasswordModal').modal();
        }
      });
+     return false;
 
    });
 
    $("#show-fieldtrip-password").click(function(){
-     api.get_blog_credential(user,{
+     api.get_fieldtrip_credential(user,{
        success: function(data){
          $("#fieldtripPasswordModalBody").html(data);
          $('#fieldtripPasswordModal').modal();
        }
      });
+     return false;
 
    });
 
      $("#stop-my-api").click(function () {
-               $("#warningRow").removeClass("hidden");
-               $("#warningMessage").text("Stopping loopback, please wait...");
+               $("#loopbackWarningMessage").removeClass("hidden");
+               $("#loopbackSuccessMessage").addClass("hidden");
+               $("#loopbackWarningMessage").text("Stopping API, please wait...");
         api.stop_loopback(user, {
             success: function () {
                 console.info('succesfully stopped loopback');
-                $("#warningRow").addClass("hidden");
-                $("#successRow").removeClass("hidden");
-                $("#successMessage").text("Loopback stopped.");
+                $("#loopbackWarningMessage").addClass("hidden");
+                $("#loopbackSuccessMessage").removeClass("hidden");
+                $("#loopbackSuccessMessage").text("Loopback stopped.");
                 $("#stop-loopback-button").hide();
                 $("#stop-my-api").hide();
                 $("#goto-my-api").hide();
@@ -324,38 +334,43 @@ $(document).ready(function()
                 $("#setup-data-button").hide();
             }
         });
+        return false;
     });
 
      $("#stop-my-fieldtrip").click(function () {
-               $("#warningRow").removeClass("hidden");
-               $("#warningMessage").text("Stopping fieldtrip, please wait...");
+         $("#fieldTripSuccessMessage").addClass("hidden");
+         $("#fieldTripWarningMessage").removeClass("hidden");
+         $("#fieldTripWarningMessage").text("Stopping Fieldtrip, please wait...");
         api.stop_fieldtrip(user, {
             success: function () {
-                console.info('succesfully stopped fieldtrip');
-                $("#warningRow").addClass("hidden");
-                $("#successRow").removeClass("hidden");
-                $("#successMessage").text("Loopback stopped.");
+                console.info('succesfully stopped Fieldtrip');
+                $("#fieldTripWarningMessage").addClass("hidden");
+                $("#fieldTripSuccessMessage").removeClass("hidden");
+                $("#fieldTripSuccessMessage").text("Fieldtrip stopped.");
                 $("#stop-my-fieldtrip").hide();
                 $("#goto-my-fieldtrip").hide();
                 $("#start-fieldtrip-button").show();
             }
         });
+        return false;
     });
 
    $("#stop-my-blog").click(function () {
-             $("#warningRow").removeClass("hidden");
-             $("#warningMessage").text("Stopping Wordpress, please wait...");
+     $("#blogSuccessMessage").addClass("hidden");
+     $("#blogWarningMessage").removeClass("hidden");
+     $("#blogWarningMessage").text("Stopping Tour Blog, please wait...");
       api.stop_wordpress(user, {
           success: function () {
-              console.info('succesfully stopped Wordpress');
-              $("#warningRow").addClass("hidden");
-              $("#successRow").removeClass("hidden");
-              $("#successMessage").text("Wordpress stopped.");
+              console.info('succesfully stopped Tour Blog');
+              $("#blogWarningMessage").addClass("hidden");
+              $("#blogSuccessMessage").removeClass("hidden");
+              $("#blogSuccessMessage").text("Blog stopped.");
               $("#stop-my-blog").hide();
               $("#start-blog-button").show();
               $("#goto-my-blog").hide();
           }
       });
+      return false;
   });
 
 

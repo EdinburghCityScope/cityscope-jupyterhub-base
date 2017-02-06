@@ -1,0 +1,57 @@
+{% if datasets %}
+    <div class="clearfix">&nbsp;</div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3>local datasets - already uploaded</h3></div>
+        <div class="panel-body">
+
+            <table id="github-repositories" class="table">
+                <thead>
+                    <tr>
+                        <th>Dataset name</th>
+                        <th>Delete</th>
+                        <th>Date</th>
+                    <!--    <th>View/Edit data</th>-->
+                        <th>Format for Publishing<th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for dataset in datasets %}
+                    <tr>
+                        <td>{{dataset['file_name']}}</td>
+                        <td><a href="{{base_url}}confirm-delete/{{dataset['file_name']}}" id="{{dataset['file_name']}}" class="modalPopUp">
+                                <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                            </a>
+                        </td>
+                        <td>{{dataset['last_modified']}}</td>
+                    <!--    <td><a href="{{dataset['file_link']}}data"
+                                class="btn btn-default"
+                                role="button"
+                                alt="View and Edit this dataset locally">
+                                View/Edit
+                            </a>
+                        </td>-->
+                        <td>{% if dataset['dcat_and_readme'] %}
+                            <a href="{{base_url}}publish-dataset/{{dataset['file_name']}}"
+                                class="btn btn-success"
+                                role="button" id="PublishDatasetButton"
+                                alt="Alter existing files needed to publish this as an OpenData repository on GitHub ">
+                                Update publishing files
+                            </a>
+                            {% else %}
+                            <a href="{{base_url}}publish-dataset/{{dataset['file_name']}}"
+                                class="btn btn-primary"
+                                role="button" id="PublishDatasetButton"
+                                alt="Create files needed to publish this as an OpenData repository on GitHub">
+                                Create publishing files
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                <tbody>
+            </table>
+
+        </div>
+    </div>
+    <div class="modal fade" id="modalPanel" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true"></div>
+{% endif %}

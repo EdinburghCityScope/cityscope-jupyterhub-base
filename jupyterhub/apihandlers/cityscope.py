@@ -41,9 +41,9 @@ class UserLoopbackAPIHandler(APIHandler):
         data_api_spawner = user.data_api_spawner
         new = yield data_api_spawner.start(credential=new_credential)
         if new:
-            message = "Loopback startup complete, initial password is set to "+new_credential+" please make a safe note of this!"
+            message = "API startup complete. To view your password, click the cog to the right and select Show my API password."
         else:
-            message = "Loopback startup complete"
+            message = "API startup complete"
 
         response = { 'message' : message}
         self.write(response)
@@ -133,7 +133,7 @@ class UserMySQLAPIHandler(APIHandler):
 
         new = yield mysql_spawner.start(credential=new_credential)
         if new:
-            message = "MySQL startup complete, initial password is set to "+new_credential+" please make a safe note of this!"
+            message = "MySQL startup complete, initial password is set to "+new_credential+" please make a safe note of this."
         else:
             message = "MySQL startup complete"
 
@@ -215,9 +215,9 @@ class UserWordpressAPIHandler(APIHandler):
 
         new = yield wordpress_spawner.start(credential=new_credential)
         if new:
-            message = "Wordpress startup complete, initial password is set to "+new_credential+" please make a safe note of this!"
+            message = "We're setting up a Tour Blog instance for you, it may take up to an hour for this to become available. To view your password, click the cog to the right and select Show my Blog password."
         else:
-            message = "Wordpress startup complete"
+            message = "Tour Blog startup complete"
 
         response = { 'message' : message}
         self.write(response)
@@ -272,7 +272,7 @@ class UserWordpressAPIHandler(APIHandler):
                 else:
                     self.set_status(404)
             else:
-                self.set_status(204)
+                self.set_status(404)
 
 class UserFieldtripAPIHandler(APIHandler):
 
@@ -304,7 +304,7 @@ class UserFieldtripAPIHandler(APIHandler):
 
         new = yield fieldtrip_spawner.start(credential=new_credential)
         if new:
-            message = "Fieldtrip startup complete, initial password is set to "+new_credential+" please make a safe note of this!"
+            message = "Fieldtrip startup complete. To view your password, click the cog to the right and select Show my Fieldtrip password."
         else:
             message = "Fieldtrip startup complete"
 
@@ -361,7 +361,7 @@ class UserFieldtripAPIHandler(APIHandler):
                 else:
                     self.set_status(404)
             else:
-                self.set_status(204)
+                self.set_status(404)
 
 default_handlers = [
     (r"/api/users/([^/]+)/loopback", UserLoopbackAPIHandler),

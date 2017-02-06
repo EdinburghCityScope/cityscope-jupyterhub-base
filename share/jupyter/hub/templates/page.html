@@ -33,6 +33,7 @@
 
     {% block stylesheet %}
     <link rel="stylesheet" href="{{ static_url("css/style.min.css") }}" type="text/css"/>
+    <link rel="stylesheet" href="{{ static_url("components/bootstrap/css/bootstrap.min.css") }}" type="text/css"/>
     {% endblock %}
     <script src="{{static_url("components/requirejs/require.js") }}" type="text/javascript" charset="utf-8"></script>
     <script>
@@ -43,8 +44,8 @@
           baseUrl: '{{static_url("js", include_version=False)}}',
           paths: {
             components: '../components',
-            jquery: '../components/jquery/jquery.min',
             bootstrap: '../components/bootstrap/js/bootstrap.min',
+            jquery: '../components/jquery/jquery.min',
             moment: "../components/moment/moment",
             "datatables.net": "../components/datatables.net/js/jquery.dataTables.min",
             datatablesbs: "../components/datatables.net-bs/js/dataTables.bootstrap.min"

@@ -30,7 +30,7 @@ RUN REPO=http://cdn-fastly.deb.debian.org && \
     echo "deb $REPO/debian jessie main\ndeb $REPO/debian-security jessie/updates main" > /etc/apt/sources.list && \
     apt-get -y update && \
     apt-get -y upgrade && \
-    apt-get -y install wget locales git bzip2 &&\
+    apt-get -y install wget locales git bzip2 libmagic1 &&\
     /usr/sbin/update-locale LANG=C.UTF-8 && \
     locale-gen C.UTF-8 && \
     apt-get remove -y locales && \

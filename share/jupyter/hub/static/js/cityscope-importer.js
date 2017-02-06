@@ -90,7 +90,7 @@ $(document).ready(function()
             error: function(error) {
               console.info("error encountered"+error);
               $("#warningRow").addClass("hidden");
-              $("#errorMessage").text("Error encountered setting up data");
+              $("#errorMessage").text("Error encountered setting up data, is your notebook started?");
               $("#errorRow").removeClass("hidden");
             }
         });
