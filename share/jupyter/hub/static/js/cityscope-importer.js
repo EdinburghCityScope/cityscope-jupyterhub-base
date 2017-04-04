@@ -8,7 +8,7 @@ require(["jquery","jhapi","bootstrap","datatablesbs"], function ($,JHAPI) {
 $(document).ready(function()
 {
 
-  $.get("https://api.github.com/search/repositories?q=user:EdinburghCityScope&order=desc")
+  $.get("https://api.github.com/search/repositories?q=user:EdinburghCityScope&per_page=100&order=desc")
     .done(function(data){
       console.log("got the data");
       var githubRepositories = [];
