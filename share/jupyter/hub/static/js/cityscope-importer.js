@@ -13,7 +13,7 @@ $(document).ready(function()
       console.log("got the data");
       var githubRepositories = [];
     $.each(data.items, function(index){
-      if ((data.items[index].name!='cityscope-loopback-docker')&&(data.items[index].name!='edinburghcityscope-utils')&&(data.items[index].name!='cityscope-notebook'))
+      if ((data.items[index].name!='cityscope-loopback-docker')&&(data.items[index].name!='edinburghcityscope-utils')&&(data.items[index].name!='cityscope-notebook')&&(data.items[index].name!='cityscope-wordpress')&&(data.items[index].name!='cityscope-jupyterhub-base'))
       {
           githubRepositories.push([data.items[index].description,'<a target="_blank" href="'+data.items[index].html_url+'">View repository details</a>','<input class="btn btn-primary" type="radio" name="repository" value="'+data.items[index].full_name+'"/>']);
       }
